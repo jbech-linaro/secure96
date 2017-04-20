@@ -255,9 +255,10 @@ uint8_t *serialize(struct cmd_packet *p)
 	return pkt;
 }
 
-size_t atsha204x_read(int fd, void *buf, size_t len)
+int atsha204x_read(int fd, void *buf, size_t len)
 {
 	int n = 0;
+	int ret = STATUS_EXEC_ERROR;
 	uint8_t *resp_buf = NULL;
 	uint8_t resp_len = 0;
 	assert(buf);
@@ -274,30 +275,31 @@ size_t atsha204x_read(int fd, void *buf, size_t len)
 		return 0;
 
 	n = read(fd, resp_buf, resp_len);
-	if (n <= 0)
-		goto err;
 
 	/*
-	 * This indicates a status code or an error, see 8.1.1.
-	 *
-	 * FIXME: Unsure whether it reports n = 4 or n = resp_len here, need to
-	 * double check.
+	 * We expect something to be read and if read, we expect either the size
+	 * 4 or the full response length as calculated above.
 	 */
-	if (n == 4 && resp_buf[0] == n) {
-		log("Got error code: 0x%0x when reading\n", resp_buf[1]);
-	} else if (n == resp_len && resp_buf[0] == n) {
-		log("Got the expexted amount of data\n");
-		if (crc_valid(resp_buf, resp_buf + (resp_len - CRC_LEN), resp_len - CRC_LEN))
-			memcpy(buf, resp_buf + 1, len);
-		else {
-			log("Got incorrect CRC\n");
-			n = 0;
-		}
-	} else {
-		log("Failed reading from device: (n: %d, len: 0x%x)\n", n,
-		    resp_buf[0]);
+	if (n <= 0 || resp_buf[0] != 4 && resp_buf[0] != resp_len)
+		goto out;
+
+	if (!crc_valid(resp_buf, resp_buf + (resp_len - CRC_LEN),
+		       resp_len - CRC_LEN)) {
+		log("Got incorrect CRC\n");
+		ret = STATUS_CRC_ERROR;
+		goto out;
 	}
-err:
+
+	/* This indicates a status code or an error, see 8.1.1. */
+	if (resp_buf[0] == 4) {
+		log("Got status/error code: 0x%0x when reading\n", resp_buf[1]);
+		ret = resp_buf[1];
+	} else if (resp_buf[0] == resp_len) {
+		log("Got the expexted amount of data\n");
+		memcpy(buf, resp_buf + 1, len);
+		ret = STATUS_OK;
+	}
+out:
 	free(resp_buf);
 	return n;
 }
@@ -305,6 +307,7 @@ err:
 void get_random(fd)
 {
 	int n = 0;
+	int ret = STATUS_EXEC_ERROR;
 	uint8_t *serialized_pkt = NULL;
 	uint8_t resp_buf[RANDOM_LEN];
 	struct timespec ts = {0, 11000000}; /* FIXME: this should a well defined value */
@@ -335,11 +338,9 @@ void get_random(fd)
 		log("Didn't write anything\n");
 
 	nanosleep(&ts, NULL);
-	n = atsha204x_read(fd, resp_buf, RANDOM_LEN);
-	if (n > 0) {
-		log("Received %d bytes\n", n);
+	ret = atsha204x_read(fd, resp_buf, RANDOM_LEN);
+	if (ret == STATUS_OK)
 		hexdump("random", resp_buf, 32);
-	}
 err:
 	free(serialized_pkt);
 }
