@@ -174,21 +174,17 @@ int i2c_configure(void)
 
 bool wake(int fd)
 {
+	int ret = STATUS_EXEC_ERROR;
 	ssize_t n = 0;
 	uint32_t cmd = CMD_WAKEUP;
-	uint8_t buf[4];
-	int crc_offset = 0;
+	uint8_t buf;
 
 	n = write(fd, &cmd, sizeof(uint32_t));
 	if (n <= 0)
 		return false;
 
-	n = read(fd, &buf, sizeof(buf));
-	if (n == 0)
-		return false;
-
-	crc_offset = sizeof(buf) - CRC_LEN;
-	return crc_valid(buf, buf + crc_offset, CRC_LEN);
+	/* FIXME: Eventually we should return true on STATUS_OK also? */
+	return atsha204x_read(fd, &buf, sizeof(buf)) == STATUS_AFTER_WAKE;
 }
 
 /*
@@ -301,7 +297,7 @@ int atsha204x_read(int fd, void *buf, size_t len)
 	}
 out:
 	free(resp_buf);
-	return n;
+	return ret;
 }
 
 void get_random(fd)
@@ -340,7 +336,7 @@ void get_random(fd)
 	nanosleep(&ts, NULL);
 	ret = atsha204x_read(fd, resp_buf, RANDOM_LEN);
 	if (ret == STATUS_OK)
-		hexdump("random", resp_buf, 32);
+		hexdump("random", resp_buf, RANDOM_LEN);
 err:
 	free(serialized_pkt);
 }
