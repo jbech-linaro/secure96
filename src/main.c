@@ -25,21 +25,23 @@
 
 #define RANDOM_LEN 32
 
+
+#ifndef EXT_DEBUG_INFO
 #define log(fmt, ...) \
 	do { if (DEBUG) \
-		fprintf(stdout, fmt, __VA_ARGS__); \
+		fprintf(stderr, fmt, ##__VA_ARGS__); \
 	} while (0)
-
-#define PRINT_CRC(crc) { \
-	int __crc_i = 0;\
-	printf("crc: "); \
-	for (; __crc_i < CRC_LEN; __crc_i++) \
-		printf("0x%02x ", (uint8_t *)crc + __crc_i); \
-	printf("\n"); \
-	}
+#else
+#define log(fmt, ...) \
+	do { if (DEBUG) \
+		fprintf(stderr, "[%s : %d]: " fmt, \
+			__func__, __LINE__, ##__VA_ARGS__); \
+	} while (0)
+#endif
 
 void hexdump(char *message, void *buf, size_t len)
 {
+#ifdef DEBUG
 	int i;
 	uint8_t *b = (uint8_t *)buf;
 
@@ -49,8 +51,13 @@ void hexdump(char *message, void *buf, size_t len)
 
 	log("%s: ", message);
 	for (i = 0; i < len; i++)
-		log("0x%02x ", b[i]);
-	log("%s", "\n");
+		printf("0x%02x ", b[i]);
+	printf("%s", "\n");
+#else
+	(void)message;
+	(void)buf;
+	(void)len;
+#endif
 }
 
 /* Word address values */
@@ -58,7 +65,6 @@ void hexdump(char *message, void *buf, size_t len)
 #define PKT_FUNC_SLEEP		0x1
 #define PKT_FUNC_IDLE		0x2
 #define PKT_FUNC_COMMAND	0x3
-
 
 /* Zone encoding, this is typicall param1 */
 #define ZONE_CONFIGURATION_BITS 0b00000000 /* 0 */
@@ -124,7 +130,8 @@ struct __attribute__ ((__packed__)) cmd_packet {
 	uint16_t checksum;
 };
 
-/* FIXME: This uses a hardcoded length of two, which should be OK for all use
+/* 
+ * FIXME: This uses a hardcoded length of two, which should be OK for all use
  * cases with ATSHA204A. Eventually it would be better to make this generic such
  * that it can be used in a more generic way.
  *
@@ -189,7 +196,7 @@ bool wake(int fd)
  * function is dependant on the struct cmd_packet and it is important that the
  * struct is packed.
  */
-size_t get_crc_length(struct cmd_packet *p)
+size_t get_payload_size(struct cmd_packet *p)
 {
 	return offsetof(struct cmd_packet, data) -
 		offsetof(struct cmd_packet, count);
@@ -211,14 +218,12 @@ size_t get_count_size(struct cmd_packet *p)
 	return get_total_packet_size(p) - sizeof(p->command);
 }
 
-
 uint16_t get_packet_crc(struct cmd_packet *p)
 {
-	size_t crc_len = get_crc_length(p);
-	log("crc_len: %d\n", crc_len);
-	return calculate_crc16(&p->count, crc_len);
+	size_t payload_size = get_payload_size(p);
+	log("payload_size: %d\n", payload_size);
+	return calculate_crc16(&p->count, payload_size);
 }
-
 
 uint8_t *serialize(struct cmd_packet *p)
 {
@@ -281,11 +286,11 @@ size_t atsha204x_read(int fd, void *buf, size_t len)
 	if (n == 4 && resp_buf[0] == n) {
 		log("Got error code: 0x%0x when reading\n", resp_buf[1]);
 	} else if (n == resp_len && resp_buf[0] == n) {
-		log("%s", "Got the expexted amount of data\n");
+		log("Got the expexted amount of data\n");
 		if (crc_valid(resp_buf, resp_buf + (resp_len - CRC_LEN), resp_len - CRC_LEN))
 			memcpy(buf, resp_buf + 1, len);
 		else {
-			log("%s", "Got incorrect CRC\n");
+			log("Got incorrect CRC\n");
 			n = 0;
 		}
 	} else {
@@ -322,10 +327,12 @@ void get_random(fd)
 	log("checksum: 0x%x\n", req_cmd.checksum);
 
 	serialized_pkt = serialize(&req_cmd);
+	if (!serialized_pkt)
+		goto err;
 
 	n = write(fd, serialized_pkt, get_total_packet_size(&req_cmd));
 	if (n <= 0)
-		log("%s\n", "Didn't write anything");
+		log("Didn't write anything\n");
 
 	nanosleep(&ts, NULL);
 	n = atsha204x_read(fd, resp_buf, RANDOM_LEN);
@@ -333,7 +340,7 @@ void get_random(fd)
 		log("Received %d bytes\n", n);
 		hexdump("random", resp_buf, 32);
 	}
-
+err:
 	free(serialized_pkt);
 }
 
