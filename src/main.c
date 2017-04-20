@@ -1,12 +1,16 @@
+#include <assert.h>
+#include <fcntl.h>
 #include <linux/i2c-dev.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+#include <time.h>
 #include <unistd.h>
 
 #define RET_OK 0
@@ -19,6 +23,13 @@
 #define CRC_LEN 2 /* In bytes */
 #define CRC_POLYNOMIAL 0x8005
 
+#define RANDOM_LEN 32
+
+#define log(fmt, ...) \
+	do { if (DEBUG) \
+		fprintf(stdout, fmt, __VA_ARGS__); \
+	} while (0)
+
 #define PRINT_CRC(crc) { \
 	int __crc_i = 0;\
 	printf("crc: "); \
@@ -27,18 +38,107 @@
 	printf("\n"); \
 	}
 
+void hexdump(char *message, void *buf, size_t len)
+{
+	int i;
+	uint8_t *b = (uint8_t *)buf;
+
+	assert(message);
+	assert(buf);
+	assert(len);
+
+	log("%s: ", message);
+	for (i = 0; i < len; i++)
+		log("0x%02x ", b[i]);
+	log("%s", "\n");
+}
+
+/* Word address values */
+#define PKT_FUNC_RESET		0x0
+#define PKT_FUNC_SLEEP		0x1
+#define PKT_FUNC_IDLE		0x2
+#define PKT_FUNC_COMMAND	0x3
+
+
+/* Zone encoding, this is typicall param1 */
+#define ZONE_CONFIGURATION_BITS 0b00000000 /* 0 */
+#define ZONE_OTP_BITS 		0b00000001 /* 1 */
+#define ZONE_DATA_BITS 		0b00000010 /* 2 */
+
+#define MAX_CMD_DATA 16
+
+/* OP-codes for each command, see section 8.5.4 in spec */
+#define OPCODE_DERIVEKEY	0x1c
+#define OPCODE_DEVREV 		0x30
+#define OPCODE_GENDIG 		0x15
+#define OPCODE_HMAC 		0x11
+#define OPCODE_CHECKMAC		0x28
+#define OPCODE_LOCK 		0x17
+#define OPCODE_MAC 		0x08
+#define OPCODE_NONCE 		0x16
+#define OPCODE_PAUSE 		0x01
+#define OPCODE_RANDOM 		0x1b
+#define OPCODE_READ 		0x02
+#define OPCODE_SHA 		0x47
+#define OPCODE_UPDATEEXTRA 	0x20
+#define OPCODE_WRITE 		0x12
+
+/* See section 8.1.1 in the spec */
+#define STATUS_OK		0x00
+#define STATUS_CHECKMAC_FAIL	0x01
+#define STATUS_PARSE_ERROR	0x03
+#define STATUS_EXEC_ERROR	0x0f
+#define STATUS_AFTER_WAKE	0x11
+#define STATUS_CRC_ERROR	0xff
+
+/*
+ * IO block, section 8.1
+ */
+struct io_block {
+	uint8_t count;
+	void *data;
+	uint16_t checksum;
+};
+
+/*
+ * Device command structure according to section 8.5.1 in the ATSHA204A
+ * datasheet.
+ * @param command	the command flag
+ * @param count		packet size in bytes, includes count, opcode, param1,
+ * 			param2, data and checksum (command NOT included)
+ * @param opcode	the operation being called
+ * @param param1	first parameter, always present
+ * @param param2	second parameter, always present
+ * @param data		optional data for the command being called
+ * @param checksum	two bytes always at the end
+ */
+struct __attribute__ ((__packed__)) cmd_packet {
+	uint8_t command;
+	uint8_t count;
+	uint8_t opcode;
+	uint8_t param1;
+	uint8_t param2[2];
+	uint8_t *data;
+	uint8_t data_length;
+	/* crc = count + opcode + param{1, 2} + data */
+	uint16_t checksum;
+};
+
 /* FIXME: This uses a hardcoded length of two, which should be OK for all use
  * cases with ATSHA204A. Eventually it would be better to make this generic such
  * that it can be used in a more generic way.
  *
  * Also, the calculate_crc16 comes from the hashlet code and since that is GPL
  * code it might be necessary to replace it with some other implementation.
+ *
+ * @param data	Pointer to the data we shall check
+ * @param crc	Pointer to the expected checksum
  */
-bool crc_valid(const uint8_t *data, uint8_t *crc)
+bool crc_valid(const uint8_t *data, uint8_t *crc, size_t data_len)
 {
 	uint16_t buf_crc = 0;
-	buf_crc = calculate_crc16(data, 2);
-	//PRINT_CRC(&buf_crc);
+	buf_crc = calculate_crc16(data, data_len);
+	hexdump("calculated CRC", &buf_crc, CRC_LEN);
 	return memcmp(crc, &buf_crc, CRC_LEN) == 0;
 }
 
@@ -81,10 +181,163 @@ bool wake(int fd)
 		return false;
 
 	crc_offset = sizeof(buf) - CRC_LEN;
-	return crc_valid(buf, buf + crc_offset);
+	return crc_valid(buf, buf + crc_offset, CRC_LEN);
 }
 
-int main()
+/*
+ * Calculate the number of bytes used in CRC calculation. Note that this
+ * function is dependant on the struct cmd_packet and it is important that the
+ * struct is packed.
+ */
+size_t get_crc_length(struct cmd_packet *p)
+{
+	return offsetof(struct cmd_packet, data) -
+		offsetof(struct cmd_packet, count);
+}
+
+size_t get_total_packet_size(struct cmd_packet *p)
+{
+	return sizeof(p->command) + sizeof(p->count) + sizeof(p->opcode) +
+		sizeof(p->param1) + sizeof(p->param2) + p->data_length +
+		sizeof(p->checksum);
+}
+
+/*
+ * Counts the size of the packet, this includes all elements in the struct
+ * cmd_packet expect the command type.
+ */
+size_t get_count_size(struct cmd_packet *p)
+{
+	return get_total_packet_size(p) - sizeof(p->command);
+}
+
+
+uint16_t get_packet_crc(struct cmd_packet *p)
+{
+	size_t crc_len = get_crc_length(p);
+	log("crc_len: %d\n", crc_len);
+	return calculate_crc16(&p->count, crc_len);
+}
+
+
+uint8_t *serialize(struct cmd_packet *p)
+{
+	uint8_t *pkt;
+	size_t pkt_size = get_total_packet_size(p);
+
+	assert(p);
+
+	pkt = calloc(pkt_size, sizeof(uint8_t));
+	if (!pkt)
+		return NULL;
+
+	pkt[0] = p->command;
+	pkt[1] = p->count;
+	pkt[2] = p->opcode;
+	pkt[3] = p->param1;
+	pkt[4] = p->param2[0];
+	pkt[5] = p->param2[1];
+
+	/*
+	 * No need to set "data" to NULL if there is no data, since calloc
+	 * already set it to 0.
+	 */
+	if (p->data && p->data_length)
+		memcpy(&pkt[6], p->data, p->data_length);
+
+	memcpy(&pkt[pkt_size - CRC_LEN], &p->checksum, CRC_LEN);
+
+	return pkt;
+}
+
+size_t atsha204x_read(int fd, void *buf, size_t len)
+{
+	int n = 0;
+	uint8_t *resp_buf = NULL;
+	uint8_t resp_len = 0;
+	assert(buf);
+
+	/*
+	 * Response will be on the format:
+	 *  [packet size: 1 byte | data: len bytes | crc: 2 bytes]
+	 *
+	 * Therefore we need allocate 3 more bytes for the response.
+	 */
+	resp_len = 1 + len + CRC_LEN;
+	resp_buf = calloc(resp_len, sizeof(uint8_t));
+	if (!resp_buf)
+		return 0;
+
+	n = read(fd, resp_buf, resp_len);
+	if (n <= 0)
+		goto err;
+
+	/*
+	 * This indicates a status code or an error, see 8.1.1.
+	 *
+	 * FIXME: Unsure whether it reports n = 4 or n = resp_len here, need to
+	 * double check.
+	 */
+	if (n == 4 && resp_buf[0] == n) {
+		log("Got error code: 0x%0x when reading\n", resp_buf[1]);
+	} else if (n == resp_len && resp_buf[0] == n) {
+		log("%s", "Got the expexted amount of data\n");
+		if (crc_valid(resp_buf, resp_buf + (resp_len - CRC_LEN), resp_len - CRC_LEN))
+			memcpy(buf, resp_buf + 1, len);
+		else {
+			log("%s", "Got incorrect CRC\n");
+			n = 0;
+		}
+	} else {
+		log("Failed reading from device: (n: %d, len: 0x%x)\n", n,
+		    resp_buf[0]);
+	}
+err:
+	free(resp_buf);
+	return n;
+}
+
+void get_random(fd)
+{
+	int n = 0;
+	uint8_t *serialized_pkt = NULL;
+	uint8_t resp_buf[RANDOM_LEN];
+	struct timespec ts = {0, 11000000}; /* FIXME: this should a well defined value */
+
+	struct cmd_packet req_cmd = {
+		.command = PKT_FUNC_COMMAND,
+		.count = 0,
+		.opcode = OPCODE_RANDOM,
+		.param1 = 0, /* Automatical Eeprom seed update */
+		.param2[0] = 0x00,
+		.param2[1] = 0x00,
+		.data = NULL,
+		.data_length = 0,
+	};
+
+	req_cmd.count = get_count_size(&req_cmd);
+	log("count: %d\n", req_cmd.count);
+
+	req_cmd.checksum = get_packet_crc(&req_cmd);
+	log("checksum: 0x%x\n", req_cmd.checksum);
+
+	serialized_pkt = serialize(&req_cmd);
+
+	n = write(fd, serialized_pkt, get_total_packet_size(&req_cmd));
+	if (n <= 0)
+		log("%s\n", "Didn't write anything");
+
+	nanosleep(&ts, NULL);
+	n = atsha204x_read(fd, resp_buf, RANDOM_LEN);
+	if (n > 0) {
+		log("Received %d bytes\n", n);
+		hexdump("random", resp_buf, 32);
+	}
+
+	free(serialized_pkt);
+}
+
+int main(int argc, char *argv[])
 {
 	int fd = -1;
 	printf("ATSHA204A on %s @ addr 0x%x\n", I2C_DEVICE, ATSHA204A_ADDR);
@@ -94,6 +347,8 @@ int main()
 
 	while (!wake(fd)) {};
 	printf("ATSHA204A is awake\n");
+
+	get_random(fd);
 
 	if (!i2c_close(fd))
 		exit_err(RET_ERROR, "Couldn't close the device\n");
