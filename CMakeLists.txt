@@ -16,7 +16,11 @@ set(APPLICATION_VERSION
 
 include_directories(include)
 
-set(SECMEZZ-SRC src/main.c src/gpl/crc.c)
+set(SECMEZZ-SRC src/debug.c
+		src/io.c
+		src/main.c
+		src/gpl/crc.c
+		src/i2c_linux.c)
 
 #add_library(tee SHARED ${LIBTEE-SRC})
 

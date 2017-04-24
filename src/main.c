@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <fcntl.h>
-#include <linux/i2c-dev.h>
+#include <status.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -13,10 +13,13 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <debug.h>
+#include <device.h>
+#include <i2c_linux.h>
+#include <io.h>
+
 #define RET_OK 0
 #define RET_ERROR 1
-
-#define ATSHA204A_ADDR 0x64
 
 #define CMD_WAKEUP 0x0
 
@@ -24,41 +27,6 @@
 #define CRC_POLYNOMIAL 0x8005
 
 #define RANDOM_LEN 32
-
-
-#ifndef EXT_DEBUG_INFO
-#define log(fmt, ...) \
-	do { if (DEBUG) \
-		fprintf(stderr, fmt, ##__VA_ARGS__); \
-	} while (0)
-#else
-#define log(fmt, ...) \
-	do { if (DEBUG) \
-		fprintf(stderr, "[%s : %d]: " fmt, \
-			__func__, __LINE__, ##__VA_ARGS__); \
-	} while (0)
-#endif
-
-void hexdump(char *message, void *buf, size_t len)
-{
-#ifdef DEBUG
-	int i;
-	uint8_t *b = (uint8_t *)buf;
-
-	assert(message);
-	assert(buf);
-	assert(len);
-
-	log("%s: ", message);
-	for (i = 0; i < len; i++)
-		printf("0x%02x ", b[i]);
-	printf("%s", "\n");
-#else
-	(void)message;
-	(void)buf;
-	(void)len;
-#endif
-}
 
 /* Word address values */
 #define PKT_FUNC_RESET		0x0
@@ -89,13 +57,7 @@ void hexdump(char *message, void *buf, size_t len)
 #define OPCODE_UPDATEEXTRA 	0x20
 #define OPCODE_WRITE 		0x12
 
-/* See section 8.1.1 in the spec */
-#define STATUS_OK		0x00
-#define STATUS_CHECKMAC_FAIL	0x01
-#define STATUS_PARSE_ERROR	0x03
-#define STATUS_EXEC_ERROR	0x0f
-#define STATUS_AFTER_WAKE	0x11
-#define STATUS_CRC_ERROR	0xff
+static struct io_interface *ioif;
 
 /*
  * IO block, section 8.1
@@ -217,7 +179,7 @@ size_t get_count_size(struct cmd_packet *p)
 uint16_t get_packet_crc(struct cmd_packet *p)
 {
 	size_t payload_size = get_payload_size(p);
-	log("payload_size: %d\n", payload_size);
+	logd("payload_size: %d\n", payload_size);
 	return calculate_crc16(&p->count, payload_size);
 }
 
@@ -281,17 +243,17 @@ int atsha204x_read(int fd, void *buf, size_t len)
 
 	if (!crc_valid(resp_buf, resp_buf + (resp_len - CRC_LEN),
 		       resp_len - CRC_LEN)) {
-		log("Got incorrect CRC\n");
+		logd("Got incorrect CRC\n");
 		ret = STATUS_CRC_ERROR;
 		goto out;
 	}
 
 	/* This indicates a status code or an error, see 8.1.1. */
 	if (resp_buf[0] == 4) {
-		log("Got status/error code: 0x%0x when reading\n", resp_buf[1]);
+		logd("Got status/error code: 0x%0x when reading\n", resp_buf[1]);
 		ret = resp_buf[1];
 	} else if (resp_buf[0] == resp_len) {
-		log("Got the expexted amount of data\n");
+		logd("Got the expexted amount of data\n");
 		memcpy(buf, resp_buf + 1, len);
 		ret = STATUS_OK;
 	}
@@ -320,10 +282,10 @@ void get_random(fd)
 	};
 
 	req_cmd.count = get_count_size(&req_cmd);
-	log("count: %d\n", req_cmd.count);
+	logd("count: %d\n", req_cmd.count);
 
 	req_cmd.checksum = get_packet_crc(&req_cmd);
-	log("checksum: 0x%x\n", req_cmd.checksum);
+	logd("checksum: 0x%x\n", req_cmd.checksum);
 
 	serialized_pkt = serialize(&req_cmd);
 	if (!serialized_pkt)
@@ -331,7 +293,7 @@ void get_random(fd)
 
 	n = write(fd, serialized_pkt, get_total_packet_size(&req_cmd));
 	if (n <= 0)
-		log("Didn't write anything\n");
+		logd("Didn't write anything\n");
 
 	nanosleep(&ts, NULL);
 	ret = atsha204x_read(fd, resp_buf, RANDOM_LEN);
@@ -344,10 +306,18 @@ err:
 int main(int argc, char *argv[])
 {
 	int fd = -1;
+	int ret = STATUS_EXEC_ERROR;
+
 	printf("ATSHA204A on %s @ addr 0x%x\n", I2C_DEVICE, ATSHA204A_ADDR);
-	fd = i2c_configure();
-	if (fd >= 0)
-		printf("Successfully opened the device (fd: %d)\n", fd);
+
+	ret = register_io_interface(IO_I2C_LINUX, &ioif);
+	if (ret != STATUS_OK) {
+	    logd("Couldn't register the IO interface\n");
+	    goto out;
+	}
+
+	ret = ioif->open(ioif->ctx);
+	fd = get_fd(ioif);
 
 	while (!wake(fd)) {};
 	printf("ATSHA204A is awake\n");
@@ -356,5 +326,6 @@ int main(int argc, char *argv[])
 
 	if (!i2c_close(fd))
 		exit_err(RET_ERROR, "Couldn't close the device\n");
-	return 0;
+out:
+	return ret;
 }
