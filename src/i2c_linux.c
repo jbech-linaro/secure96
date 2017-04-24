@@ -1,14 +1,12 @@
+#include <assert.h>
+#include <fcntl.h>
 #include <i2c_linux.h>
+#include <linux/i2c-dev.h>
+
 #include <debug.h>
 #include <device.h>
 #include <io.h>
 #include <status.h>
-
-int get_fd(struct io_interface *ioif)
-{
-	struct i2c_linux_ctx *ctx = ioif->ctx;
-	return ctx->fd;
-}
 
 static uint32_t i2c_linux_open(void *ctx)
 {
@@ -27,9 +25,45 @@ static uint32_t i2c_linux_open(void *ctx)
 	return STATUS_OK;
 }
 
+static size_t i2c_linux_write(void *ctx, const void *buf, size_t size)
+{
+	struct i2c_linux_ctx *ictx = ctx;
+
+	assert(ictx);
+	assert(ictx->fd != 0);
+	assert(ictx);
+
+	return write(ictx->fd, buf, size);
+}
+
+static size_t i2c_linux_read(void *ctx, const void *buf, size_t size)
+{
+	struct i2c_linux_ctx *ictx = ctx;
+
+	assert(ictx);
+	assert(ictx->fd != 0);
+	assert(buf);
+
+	return read(ictx->fd, buf, size);
+}
+
+static uint32_t i2c_linux_close(void *ctx)
+{
+	struct i2c_linux_ctx *ictx = ctx;
+
+	assert(ictx);
+	assert(ictx->fd != 0);
+	logd("Closing fd: %d\n", ictx->fd);
+
+	return close(ictx->fd) == 0 ? STATUS_OK : STATUS_EXEC_ERROR;
+}
+
 static struct i2c_linux_ctx i2c_ctx;
 
 struct io_interface i2c_linux = {
 	.ctx = &i2c_ctx,
-	.open = i2c_linux_open
+	.open = i2c_linux_open,
+	.write = i2c_linux_write,
+	.read = i2c_linux_read,
+	.close = i2c_linux_close
 };

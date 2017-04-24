@@ -7,6 +7,9 @@
 struct io_interface {
 	void *ctx;
 	uint32_t (*open)(void *ctx);
+	size_t (*write)(void *ctx, const void *buf, size_t size);
+	size_t (*read)(void *ctx, const void *buf, size_t size);
+	uint32_t (*close)(void *ctx);
 };
 
 uint32_t register_io_interface(uint8_t io_interface_type,

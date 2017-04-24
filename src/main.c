@@ -1,15 +1,9 @@
 #include <assert.h>
-#include <fcntl.h>
-#include <status.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -17,9 +11,7 @@
 #include <device.h>
 #include <i2c_linux.h>
 #include <io.h>
-
-#define RET_OK 0
-#define RET_ERROR 1
+#include <status.h>
 
 #define CMD_WAKEUP 0x0
 
@@ -111,42 +103,20 @@ bool crc_valid(const uint8_t *data, uint8_t *crc, size_t data_len)
 	return memcmp(crc, &buf_crc, CRC_LEN) == 0;
 }
 
-int exit_err(int status, char *msg)
-{
-	printf("%s", msg);
-	exit(status);
-}
-
-bool i2c_close(int fd)
-{
-	return close(fd) == 0;
-}
-
-int i2c_configure(void)
-{
-	int fd = open(I2C_DEVICE, O_RDWR);
-	if (fd < 0)
-		exit_err(RET_ERROR, "Couldn't open the device\n");
-
-	if (ioctl(fd, I2C_SLAVE, ATSHA204A_ADDR) < 0)
-		exit_err(RET_ERROR, "Couldn't talk to the slave\n");
-
-	return fd;
-}
-
-bool wake(int fd)
+bool wake(struct io_interface *ioif)
 {
 	int ret = STATUS_EXEC_ERROR;
 	ssize_t n = 0;
 	uint32_t cmd = CMD_WAKEUP;
 	uint8_t buf;
 
-	n = write(fd, &cmd, sizeof(uint32_t));
+	n = ioif->write(ioif->ctx, &cmd, sizeof(uint32_t));
 	if (n <= 0)
 		return false;
 
 	/* FIXME: Eventually we should return true on STATUS_OK also? */
-	return atsha204x_read(fd, &buf, sizeof(buf)) == STATUS_AFTER_WAKE;
+	return atsha204x_read(ioif, &buf,
+			      sizeof(buf)) == STATUS_AFTER_WAKE;
 }
 
 /*
@@ -213,36 +183,38 @@ uint8_t *serialize(struct cmd_packet *p)
 	return pkt;
 }
 
-int atsha204x_read(int fd, void *buf, size_t len)
+int atsha204x_read(struct io_interface *ioif, void *buf, size_t size)
 {
 	int n = 0;
 	int ret = STATUS_EXEC_ERROR;
 	uint8_t *resp_buf = NULL;
-	uint8_t resp_len = 0;
+	uint8_t resp_size = 0;
+
+	assert(ioif);
 	assert(buf);
 
 	/*
 	 * Response will be on the format:
-	 *  [packet size: 1 byte | data: len bytes | crc: 2 bytes]
+	 *  [packet size: 1 byte | data: size bytes | crc: 2 bytes]
 	 *
 	 * Therefore we need allocate 3 more bytes for the response.
 	 */
-	resp_len = 1 + len + CRC_LEN;
-	resp_buf = calloc(resp_len, sizeof(uint8_t));
+	resp_size = 1 + size + CRC_LEN;
+	resp_buf = calloc(resp_size, sizeof(uint8_t));
 	if (!resp_buf)
 		return 0;
 
-	n = read(fd, resp_buf, resp_len);
+	n = ioif->read(ioif->ctx, resp_buf, resp_size);
 
 	/*
 	 * We expect something to be read and if read, we expect either the size
 	 * 4 or the full response length as calculated above.
 	 */
-	if (n <= 0 || resp_buf[0] != 4 && resp_buf[0] != resp_len)
+	if (n <= 0 || resp_buf[0] != 4 && resp_buf[0] != resp_size)
 		goto out;
 
-	if (!crc_valid(resp_buf, resp_buf + (resp_len - CRC_LEN),
-		       resp_len - CRC_LEN)) {
+	if (!crc_valid(resp_buf, resp_buf + (resp_size - CRC_LEN),
+		       resp_size - CRC_LEN)) {
 		logd("Got incorrect CRC\n");
 		ret = STATUS_CRC_ERROR;
 		goto out;
@@ -252,9 +224,9 @@ int atsha204x_read(int fd, void *buf, size_t len)
 	if (resp_buf[0] == 4) {
 		logd("Got status/error code: 0x%0x when reading\n", resp_buf[1]);
 		ret = resp_buf[1];
-	} else if (resp_buf[0] == resp_len) {
+	} else if (resp_buf[0] == resp_size) {
 		logd("Got the expexted amount of data\n");
-		memcpy(buf, resp_buf + 1, len);
+		memcpy(buf, resp_buf + 1, size);
 		ret = STATUS_OK;
 	}
 out:
@@ -262,7 +234,7 @@ out:
 	return ret;
 }
 
-void get_random(fd)
+void get_random(struct io_interface *ioif)
 {
 	int n = 0;
 	int ret = STATUS_EXEC_ERROR;
@@ -291,12 +263,14 @@ void get_random(fd)
 	if (!serialized_pkt)
 		goto err;
 
-	n = write(fd, serialized_pkt, get_total_packet_size(&req_cmd));
+	n = ioif->write(ioif->ctx, serialized_pkt,
+			get_total_packet_size(&req_cmd));
 	if (n <= 0)
 		logd("Didn't write anything\n");
 
 	nanosleep(&ts, NULL);
-	ret = atsha204x_read(fd, resp_buf, RANDOM_LEN);
+
+	ret = atsha204x_read(ioif, resp_buf, RANDOM_LEN);
 	if (ret == STATUS_OK)
 		hexdump("random", resp_buf, RANDOM_LEN);
 err:
@@ -317,15 +291,17 @@ int main(int argc, char *argv[])
 	}
 
 	ret = ioif->open(ioif->ctx);
-	fd = get_fd(ioif);
 
-	while (!wake(fd)) {};
+	while (!wake(ioif)) {};
 	printf("ATSHA204A is awake\n");
 
-	get_random(fd);
+	get_random(ioif);
 
-	if (!i2c_close(fd))
-		exit_err(RET_ERROR, "Couldn't close the device\n");
+	ret = ioif->close(ioif->ctx);
+	if (ret != STATUS_OK) {
+		ret = STATUS_EXEC_ERROR;
+		logd("Couldn't close the device\n");
+	}
 out:
 	return ret;
 }
