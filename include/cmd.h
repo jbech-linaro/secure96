@@ -51,6 +51,7 @@ struct __attribute__ ((__packed__)) cmd_packet {
 	uint8_t *data;
 	uint8_t data_length;
 	/* crc = count + opcode + param{1, 2} + data */
+	uint8_t max_time; /* Max time in ms for the command */
 	uint16_t checksum;
 };
 

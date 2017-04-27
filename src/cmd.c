@@ -142,24 +142,68 @@ static uint8_t *serialize(struct cmd_packet *p)
 	return pkt;
 }
 
+void get_command(struct cmd_packet *p, uint8_t opcode)
+{
+	assert(p);
+
+	p->command = PKT_FUNC_COMMAND;
+	p->opcode = opcode;
+
+	switch (p->opcode)
+	{
+	case OPCODE_DERIVEKEY:
+		break;
+	case OPCODE_DEVREV:
+		break;
+	case OPCODE_GENDIG:
+		break;
+	case OPCODE_HMAC:
+		break;
+	case OPCODE_CHECKMAC:
+		break;
+	case OPCODE_LOCK:
+		break;
+	case OPCODE_MAC:
+		break;
+	case OPCODE_NONCE:
+		break;
+	case OPCODE_PAUSE:
+		break;
+
+	case OPCODE_RANDOM:
+		p->count = 0;
+		p->param1 = 0;
+		p->param2[0] = 0x00;
+		p->param2[1] = 0x00;
+		p->data = NULL;
+		p->data_length = 0;
+		p->max_time = 50; /* Table 8.4 */
+		break;
+
+	case OPCODE_READ:
+		break;
+	case OPCODE_SHA:
+		break;
+	case OPCODE_UPDATEEXTRA:
+		break;
+	case OPCODE_WRITE:
+		break;
+
+	default:
+		break;
+	}
+}
+
 void get_random(struct io_interface *ioif)
 {
 	int n = 0;
 	int ret = STATUS_EXEC_ERROR;
 	uint8_t *serialized_pkt = NULL;
 	uint8_t resp_buf[RANDOM_LEN];
-	struct timespec ts = {0, 11000000}; /* FIXME: this should a well defined value */
 
-	struct cmd_packet req_cmd = {
-		.command = PKT_FUNC_COMMAND,
-		.count = 0,
-		.opcode = OPCODE_RANDOM,
-		.param1 = 0, /* Automatical Eeprom seed update */
-		.param2[0] = 0x00,
-		.param2[1] = 0x00,
-		.data = NULL,
-		.data_length = 0,
-	};
+	struct cmd_packet req_cmd;
+
+	get_command(&req_cmd, OPCODE_RANDOM);
 
 	req_cmd.count = get_count_size(&req_cmd);
 	logd("count: %d\n", req_cmd.count);
@@ -176,7 +220,8 @@ void get_random(struct io_interface *ioif)
 	if (n <= 0)
 		logd("Didn't write anything\n");
 
-	nanosleep(&ts, NULL);
+	/* Time in req_cmd is in ms */
+	usleep(req_cmd.max_time * 1000);
 
 	ret = atsha204x_read(ioif, resp_buf, RANDOM_LEN);
 	if (ret == STATUS_OK)
