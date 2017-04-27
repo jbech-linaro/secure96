@@ -4,6 +4,16 @@
 
 #define IO_I2C_LINUX 0
 
+/*
+ * IO block, section 8.1
+ */
+struct io_block {
+	uint8_t count;
+	void *data;
+	uint16_t checksum;
+};
+
+
 struct io_interface {
 	void *ctx;
 	uint32_t (*open)(void *ctx);

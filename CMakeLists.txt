@@ -16,7 +16,8 @@ set(APPLICATION_VERSION
 
 include_directories(include)
 
-set(SECMEZZ-SRC src/debug.c
+set(SECMEZZ-SRC src/cmd.c
+		src/debug.c
 		src/io.c
 		src/main.c
 		src/gpl/crc.c
