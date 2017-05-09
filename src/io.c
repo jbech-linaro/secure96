@@ -28,9 +28,9 @@ int at204_open(struct io_interface *ioif)
 	return ioif->open(ioif->ctx);
 }
 
-int at204_write(struct io_interface *ioif)
+int at204_write(struct io_interface *ioif, void *buf, size_t size)
 {
-	return ioif->open(ioif->ctx);
+	return ioif->write(ioif->ctx, buf, size);
 }
 
 int at204_read(struct io_interface *ioif, void *buf, size_t size)

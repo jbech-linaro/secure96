@@ -153,7 +153,7 @@ void cmd_devrev(struct io_interface *ioif)
 	if (!serialized_pkt)
 		goto err;
 
-	n = ioif->write(ioif->ctx, serialized_pkt,
+	n = at204_write(ioif, serialized_pkt,
 			get_total_packet_size(&req_cmd));
 	if (n <= 0)
 		logd("Didn't write anything\n");
@@ -166,7 +166,6 @@ void cmd_devrev(struct io_interface *ioif)
 		hexdump("devrev", resp_buf, DEVREV_LEN);
 err:
 	free(serialized_pkt);
-
 }
 
 void cmd_get_random(struct io_interface *ioif)
@@ -184,7 +183,7 @@ void cmd_get_random(struct io_interface *ioif)
 	if (!serialized_pkt)
 		goto err;
 
-	n = ioif->write(ioif->ctx, serialized_pkt,
+	n = at204_write(ioif, serialized_pkt,
 			get_total_packet_size(&req_cmd));
 	if (n <= 0)
 		logd("Didn't write anything\n");
@@ -206,7 +205,7 @@ bool cmd_wake(struct io_interface *ioif)
 	uint32_t cmd = CMD_WAKEUP;
 	uint8_t buf;
 
-	n = ioif->write(ioif->ctx, &cmd, sizeof(uint32_t));
+	n = at204_write(ioif, &cmd, sizeof(uint32_t));
 	if (n <= 0)
 		return false;
 

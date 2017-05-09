@@ -26,7 +26,7 @@ uint32_t register_io_interface(uint8_t io_interface_type,
 			       struct io_interface **ioif);
 
 int at204_open(struct io_interface *ioif);
-int at204_write(struct io_interface *ioif);
+int at204_write(struct io_interface *ioif, void *buf, size_t size);
 int at204_read(struct io_interface *ioif, void *buf, size_t size);
 int at204_close(struct io_interface *ioif);
 #endif
