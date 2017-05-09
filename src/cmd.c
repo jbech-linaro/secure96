@@ -30,19 +30,32 @@ static size_t get_total_packet_size(struct cmd_packet *p)
 
 /*
  * Counts the size of the packet, this includes all elements in the struct
- * cmd_packet expect the command type.
+ * cmd_packet except the command type.
  */
 static size_t get_count_size(struct cmd_packet *p)
 {
 	return get_total_packet_size(p) - sizeof(p->command);
 }
 
+/*
+ * This serializes a command packet. It will also calculate and store the
+ * checksum for the package.
+ */
 static uint8_t *serialize(struct cmd_packet *p)
 {
 	uint8_t *pkt;
 	size_t pkt_size = get_total_packet_size(p);
+	size_t pl_size;
 
 	assert(p);
+
+	p->count = get_count_size(p);
+	logd("count: %d\n", p->count);
+
+	pl_size = get_payload_size(p);
+
+	p->checksum = get_packet_crc(p, pl_size);
+	logd("checksum: 0x%x\n", p->checksum);
 
 	pkt = calloc(pkt_size, sizeof(uint8_t));
 	if (!pkt)
@@ -130,19 +143,11 @@ void cmd_devrev(struct io_interface *ioif)
 {
 	int n = 0;
 	int ret = STATUS_EXEC_ERROR;
-	size_t pl_size;
 	struct cmd_packet req_cmd;
 	uint8_t resp_buf[DEVREV_LEN];
 	uint8_t *serialized_pkt = NULL;
 
 	get_command(&req_cmd, OPCODE_DEVREV);
-
-	req_cmd.count = get_count_size(&req_cmd);
-	logd("count: %d\n", req_cmd.count);
-
-	pl_size = get_payload_size(&req_cmd);
-	req_cmd.checksum = get_packet_crc(&req_cmd, pl_size);
-	logd("checksum: 0x%x\n", req_cmd.checksum);
 
 	serialized_pkt = serialize(&req_cmd);
 	if (!serialized_pkt)
@@ -170,18 +175,10 @@ void cmd_get_random(struct io_interface *ioif)
 	int ret = STATUS_EXEC_ERROR;
 	uint8_t *serialized_pkt = NULL;
 	uint8_t resp_buf[RANDOM_LEN];
-	size_t pl_size;
 
 	struct cmd_packet req_cmd;
 
 	get_command(&req_cmd, OPCODE_RANDOM);
-
-	req_cmd.count = get_count_size(&req_cmd);
-	logd("count: %d\n", req_cmd.count);
-
-	pl_size = get_payload_size(&req_cmd);
-	req_cmd.checksum = get_packet_crc(&req_cmd, pl_size);
-	logd("checksum: 0x%x\n", req_cmd.checksum);
 
 	serialized_pkt = serialize(&req_cmd);
 	if (!serialized_pkt)
