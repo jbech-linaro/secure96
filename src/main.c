@@ -6,11 +6,6 @@
 #include <io.h>
 #include <status.h>
 
-/* Zone encoding, this is typicall param1 */
-#define ZONE_CONFIGURATION_BITS 0b00000000 /* 0 */
-#define ZONE_OTP_BITS 		0b00000001 /* 1 */
-#define ZONE_DATA_BITS 		0b00000010 /* 2 */
-
 static struct io_interface *ioif;
 
 int main(int argc, char *argv[])
@@ -33,6 +28,7 @@ int main(int argc, char *argv[])
 
 	cmd_get_random(ioif);
 	cmd_devrev(ioif);
+	cmd_get_serialnbr(ioif);
 
 	ret = at204_close(ioif);
 	if (ret != STATUS_OK) {

@@ -126,6 +126,10 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 
 	case OPCODE_READ:
+		p->count = 0;
+		p->data = NULL;
+		p->data_length = 0;
+		p->max_time = 4; /* Table 8.4 */
 		break;
 	case OPCODE_SHA:
 		break;
@@ -194,6 +198,67 @@ void cmd_get_random(struct io_interface *ioif)
 	ret = at204_read(ioif, resp_buf, RANDOM_LEN);
 	if (ret == STATUS_OK)
 		hexdump("random", resp_buf, RANDOM_LEN);
+err:
+	free(serialized_pkt);
+}
+
+void cmd_get_serialnbr(struct io_interface *ioif)
+{
+	int n = 0;
+	int i = 0;
+	int ret = STATUS_EXEC_ERROR;
+	uint8_t offset = 0;
+	uint8_t addr = 0;
+	uint8_t *serialized_pkt = NULL;
+	uint8_t resp_buf[4]; /* FIXME: magic nbr ... */
+	uint8_t serial_nbr[12] = { 0 }; /* Only 9 are used, but we read 4 bytes at a time */
+
+	struct cmd_packet req_cmd;
+
+	get_command(&req_cmd, OPCODE_READ);
+
+	req_cmd.param1 = ZONE_CONFIGURATION_BITS;
+
+	for (i = 0; i < 3; i++) {
+
+		switch (i) {
+		case 0:
+			offset = 0;
+			addr = 0;
+			break;
+		case 1:
+			offset = 4;
+			addr = 2;
+			break;
+		case 2:
+			offset = 8;
+			addr = 3;
+			break;
+		default:
+			logd("Bad addr\n");
+			break;
+		}
+
+		req_cmd.param2[0] = addr;
+		req_cmd.param2[1] = 0;
+
+		serialized_pkt = serialize(&req_cmd);
+		if (!serialized_pkt)
+			goto err;
+
+		n = at204_write(ioif, serialized_pkt,
+				get_total_packet_size(&req_cmd));
+		if (n <= 0)
+			logd("Didn't write anything\n");
+
+		/* Time in req_cmd is in ms */
+		usleep(req_cmd.max_time * 1000);
+
+		ret = at204_read(ioif, &serial_nbr[offset], 4);
+	}
+
+	if (ret == STATUS_OK)
+		hexdump("serial number", serial_nbr, SERIALNUM_LEN);
 err:
 	free(serialized_pkt);
 }
