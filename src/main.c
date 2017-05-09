@@ -28,10 +28,10 @@ int main(int argc, char *argv[])
 
 	ret = at204_open(ioif);
 
-	while (!wake(ioif)) {};
+	while (!cmd_wake(ioif)) {};
 	printf("ATSHA204A is awake\n");
 
-	get_random(ioif);
+	cmd_get_random(ioif);
 
 	ret = at204_close(ioif);
 	if (ret != STATUS_OK) {

@@ -119,7 +119,7 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 	}
 }
 
-void get_random(struct io_interface *ioif)
+void cmd_get_random(struct io_interface *ioif)
 {
 	int n = 0;
 	int ret = STATUS_EXEC_ERROR;
@@ -157,7 +157,7 @@ err:
 	free(serialized_pkt);
 }
 
-bool wake(struct io_interface *ioif)
+bool cmd_wake(struct io_interface *ioif)
 {
 	int ret = STATUS_EXEC_ERROR;
 	ssize_t n = 0;
