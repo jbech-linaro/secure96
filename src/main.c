@@ -26,14 +26,14 @@ int main(int argc, char *argv[])
 	    goto out;
 	}
 
-	ret = ioif->open(ioif->ctx);
+	ret = at204_open(ioif);
 
 	while (!wake(ioif)) {};
 	printf("ATSHA204A is awake\n");
 
 	get_random(ioif);
 
-	ret = ioif->close(ioif->ctx);
+	ret = at204_close(ioif);
 	if (ret != STATUS_OK) {
 		ret = STATUS_EXEC_ERROR;
 		logd("Couldn't close the device\n");

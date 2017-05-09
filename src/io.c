@@ -18,3 +18,23 @@ uint32_t register_io_interface(uint8_t io_interface_type,
 
 	return STATUS_OK;
 }
+
+int at204_open(struct io_interface *ioif)
+{
+	return ioif->open(ioif->ctx);
+}
+
+int at204_write(struct io_interface *ioif)
+{
+	return ioif->open(ioif->ctx);
+}
+
+int at204_read(struct io_interface *ioif)
+{
+	return ioif->open(ioif->ctx);
+}
+
+int at204_close(struct io_interface *ioif)
+{
+	return ioif->close(ioif->ctx);
+}

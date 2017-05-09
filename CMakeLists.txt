@@ -28,7 +28,8 @@ set(SECMEZZ-SRC src/cmd.c
 #set(TS-SRC tee-supplicant/src/handle.c)
 
 add_definitions(-DI2C_DEVICE="/dev/i2c-1" -DDEBUG)
-#add_definitions(-DEXT_DEBUG_INFO)
+add_definitions(-DEXT_DEBUG_INFO)
+add_definitions(-DCMAKE_BUILD_TYPE=Debug)
 
 add_executable(cshield ${SECMEZZ-SRC})
 target_link_libraries(cshield)
