@@ -7,6 +7,7 @@
 #define CMD_WAKEUP 0x0
 
 #define RANDOM_LEN 32
+#define DEVREV_LEN 4
 
 /* Word address values */
 #define PKT_FUNC_RESET		0x0

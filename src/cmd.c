@@ -79,6 +79,13 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 	case OPCODE_DERIVEKEY:
 		break;
 	case OPCODE_DEVREV:
+		p->count = 0;
+		p->param1 = 0;
+		p->param2[0] = 0;
+		p->param2[1] = 0;
+		p->data = NULL;
+		p->data_length = 0;
+		p->max_time = 2; /* Table 8.4 */
 		break;
 	case OPCODE_GENDIG:
 		break;
@@ -117,6 +124,44 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 	default:
 		break;
 	}
+}
+
+void cmd_devrev(struct io_interface *ioif)
+{
+	int n = 0;
+	int ret = STATUS_EXEC_ERROR;
+	size_t pl_size;
+	struct cmd_packet req_cmd;
+	uint8_t resp_buf[DEVREV_LEN];
+	uint8_t *serialized_pkt = NULL;
+
+	get_command(&req_cmd, OPCODE_DEVREV);
+
+	req_cmd.count = get_count_size(&req_cmd);
+	logd("count: %d\n", req_cmd.count);
+
+	pl_size = get_payload_size(&req_cmd);
+	req_cmd.checksum = get_packet_crc(&req_cmd, pl_size);
+	logd("checksum: 0x%x\n", req_cmd.checksum);
+
+	serialized_pkt = serialize(&req_cmd);
+	if (!serialized_pkt)
+		goto err;
+
+	n = ioif->write(ioif->ctx, serialized_pkt,
+			get_total_packet_size(&req_cmd));
+	if (n <= 0)
+		logd("Didn't write anything\n");
+
+	/* Time in req_cmd is in ms */
+	usleep(req_cmd.max_time * 1000);
+
+	ret = at204_read(ioif, resp_buf, DEVREV_LEN);
+	if (ret == STATUS_OK)
+		hexdump("devrev", resp_buf, DEVREV_LEN);
+err:
+	free(serialized_pkt);
+
 }
 
 void cmd_get_random(struct io_interface *ioif)
