@@ -1,3 +1,7 @@
+#include <assert.h>
+#include <string.h>
+
+#include <crc_local.h>
 #include <debug.h>
 #include <io.h>
 #include <status.h>
@@ -29,10 +33,57 @@ int at204_write(struct io_interface *ioif)
 	return ioif->open(ioif->ctx);
 }
 
-int at204_read(struct io_interface *ioif)
+int at204_read(struct io_interface *ioif, void *buf, size_t size)
 {
-	return ioif->open(ioif->ctx);
+	int n = 0;
+	int ret = STATUS_EXEC_ERROR;
+	uint8_t *resp_buf = NULL;
+	uint8_t resp_size = 0;
+
+	assert(ioif);
+	assert(buf);
+
+	/*
+	 * Response will be on the format:
+	 *  [packet size: 1 byte | data: size bytes | crc: 2 bytes]
+	 *
+	 * Therefore we need allocate 3 more bytes for the response.
+	 */
+	resp_size = 1 + size + CRC_LEN;
+	resp_buf = calloc(resp_size, sizeof(uint8_t));
+	if (!resp_buf)
+		return 0;
+
+	n = ioif->read(ioif->ctx, resp_buf, resp_size);
+
+	/*
+	 * We expect something to be read and if read, we expect either the size
+	 * 4 or the full response length as calculated above.
+	 */
+	if (n <= 0 || resp_buf[0] != 4 && resp_buf[0] != resp_size)
+		goto out;
+
+	if (!crc_valid(resp_buf, resp_buf + (resp_size - CRC_LEN),
+		       resp_size - CRC_LEN)) {
+		logd("Got incorrect CRC\n");
+		ret = STATUS_CRC_ERROR;
+		goto out;
+	}
+
+	/* This indicates a status code or an error, see 8.1.1. */
+	if (resp_buf[0] == 4) {
+		logd("Got status/error code: 0x%0x when reading\n", resp_buf[1]);
+		ret = resp_buf[1];
+	} else if (resp_buf[0] == resp_size) {
+		logd("Got the expexted amount of data\n");
+		memcpy(buf, resp_buf + 1, size);
+		ret = STATUS_OK;
+	}
+out:
+	free(resp_buf);
+	return ret;
 }
+
 
 int at204_close(struct io_interface *ioif)
 {

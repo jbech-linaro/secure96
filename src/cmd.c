@@ -6,26 +6,9 @@
 #include <string.h>
 
 #include <cmd.h>
+#include <crc_local.h>
 #include <debug.h>
 #include <status.h>
-
-/* FIXME: CRC related functionality needs to go into separate files later on */
-#define CRC_LEN 2 /* In bytes */
-
-/* 
- * The calculate_crc16 comes from the hashlet code and since that is GPL
- * code it might be necessary to replace it with some other implementation.
- *
- * @param data	Pointer to the data we shall check
- * @param crc	Pointer to the expected checksum
- */
-static bool crc_valid(const uint8_t *data, uint8_t *crc, size_t data_len)
-{
-	uint16_t buf_crc = 0;
-	buf_crc = calculate_crc16(data, data_len);
-	hexdump("calculated CRC", &buf_crc, CRC_LEN);
-	return memcmp(crc, &buf_crc, CRC_LEN) == 0;
-}
 
 /*
  * Calculate the number of bytes used in CRC calculation. Note that this
@@ -36,13 +19,6 @@ static size_t get_payload_size(struct cmd_packet *p)
 {
 	return offsetof(struct cmd_packet, data) -
 		offsetof(struct cmd_packet, count);
-}
-
-static uint16_t get_packet_crc(struct cmd_packet *p)
-{
-	size_t payload_size = get_payload_size(p);
-	logd("payload_size: %d\n", payload_size);
-	return calculate_crc16(&p->count, payload_size);
 }
 
 static size_t get_total_packet_size(struct cmd_packet *p)
@@ -59,57 +35,6 @@ static size_t get_total_packet_size(struct cmd_packet *p)
 static size_t get_count_size(struct cmd_packet *p)
 {
 	return get_total_packet_size(p) - sizeof(p->command);
-}
-
-int atsha204x_read(struct io_interface *ioif, void *buf, size_t size)
-{
-	int n = 0;
-	int ret = STATUS_EXEC_ERROR;
-	uint8_t *resp_buf = NULL;
-	uint8_t resp_size = 0;
-
-	assert(ioif);
-	assert(buf);
-
-	/*
-	 * Response will be on the format:
-	 *  [packet size: 1 byte | data: size bytes | crc: 2 bytes]
-	 *
-	 * Therefore we need allocate 3 more bytes for the response.
-	 */
-	resp_size = 1 + size + CRC_LEN;
-	resp_buf = calloc(resp_size, sizeof(uint8_t));
-	if (!resp_buf)
-		return 0;
-
-	n = ioif->read(ioif->ctx, resp_buf, resp_size);
-
-	/*
-	 * We expect something to be read and if read, we expect either the size
-	 * 4 or the full response length as calculated above.
-	 */
-	if (n <= 0 || resp_buf[0] != 4 && resp_buf[0] != resp_size)
-		goto out;
-
-	if (!crc_valid(resp_buf, resp_buf + (resp_size - CRC_LEN),
-		       resp_size - CRC_LEN)) {
-		logd("Got incorrect CRC\n");
-		ret = STATUS_CRC_ERROR;
-		goto out;
-	}
-
-	/* This indicates a status code or an error, see 8.1.1. */
-	if (resp_buf[0] == 4) {
-		logd("Got status/error code: 0x%0x when reading\n", resp_buf[1]);
-		ret = resp_buf[1];
-	} else if (resp_buf[0] == resp_size) {
-		logd("Got the expexted amount of data\n");
-		memcpy(buf, resp_buf + 1, size);
-		ret = STATUS_OK;
-	}
-out:
-	free(resp_buf);
-	return ret;
 }
 
 static uint8_t *serialize(struct cmd_packet *p)
@@ -200,6 +125,7 @@ void get_random(struct io_interface *ioif)
 	int ret = STATUS_EXEC_ERROR;
 	uint8_t *serialized_pkt = NULL;
 	uint8_t resp_buf[RANDOM_LEN];
+	size_t pl_size;
 
 	struct cmd_packet req_cmd;
 
@@ -208,7 +134,8 @@ void get_random(struct io_interface *ioif)
 	req_cmd.count = get_count_size(&req_cmd);
 	logd("count: %d\n", req_cmd.count);
 
-	req_cmd.checksum = get_packet_crc(&req_cmd);
+	pl_size = get_payload_size(&req_cmd);
+	req_cmd.checksum = get_packet_crc(&req_cmd, pl_size);
 	logd("checksum: 0x%x\n", req_cmd.checksum);
 
 	serialized_pkt = serialize(&req_cmd);
@@ -223,7 +150,7 @@ void get_random(struct io_interface *ioif)
 	/* Time in req_cmd is in ms */
 	usleep(req_cmd.max_time * 1000);
 
-	ret = atsha204x_read(ioif, resp_buf, RANDOM_LEN);
+	ret = at204_read(ioif, resp_buf, RANDOM_LEN);
 	if (ret == STATUS_OK)
 		hexdump("random", resp_buf, RANDOM_LEN);
 err:
@@ -242,6 +169,6 @@ bool wake(struct io_interface *ioif)
 		return false;
 
 	/* FIXME: Eventually we should return true on STATUS_OK also? */
-	return atsha204x_read(ioif, &buf,
-			      sizeof(buf)) == STATUS_AFTER_WAKE;
+	return at204_read(ioif, &buf,
+			  sizeof(buf)) == STATUS_AFTER_WAKE;
 }

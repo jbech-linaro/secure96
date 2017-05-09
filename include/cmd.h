@@ -56,7 +56,6 @@ struct __attribute__ ((__packed__)) cmd_packet {
 };
 
 void get_random(struct io_interface *ioif);
-int atsha204x_read(struct io_interface *ioif, void *buf, size_t size);
 bool wake(struct io_interface *ioif);
 
 #endif
