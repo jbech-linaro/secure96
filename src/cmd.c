@@ -267,14 +267,13 @@ bool cmd_wake(struct io_interface *ioif)
 {
 	int ret = STATUS_EXEC_ERROR;
 	ssize_t n = 0;
-	uint32_t cmd = CMD_WAKEUP;
+	uint8_t cmd = CMD_WAKEUP;
 	uint8_t buf;
 
-	n = at204_write(ioif, &cmd, sizeof(uint32_t));
+	n = at204_write(ioif, &cmd, sizeof(cmd));
 	if (n <= 0)
 		return false;
 
 	/* FIXME: Eventually we should return true on STATUS_OK also? */
-	return at204_read(ioif, &buf,
-			  sizeof(buf)) == STATUS_AFTER_WAKE;
+	return at204_read(ioif, &buf, sizeof(buf)) == STATUS_AFTER_WAKE;
 }
