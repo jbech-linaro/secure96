@@ -263,6 +263,55 @@ err:
 	free(serialized_pkt);
 }
 
+void cmd_get_otp_mode(struct io_interface *ioif)
+{
+	int n = 0;
+	int ret = STATUS_EXEC_ERROR;
+	struct cmd_packet req_cmd;
+	uint8_t resp_buf[OTP_MODE_LEN];
+	uint8_t *serialized_pkt = NULL;
+
+	get_command(&req_cmd, OPCODE_READ);
+
+	req_cmd.param2[0] = OTP_ADDR;
+	req_cmd.param2[1] = 0;
+
+	serialized_pkt = serialize(&req_cmd);
+	if (!serialized_pkt)
+		goto err;
+
+	n = at204_write(ioif, serialized_pkt,
+			get_total_packet_size(&req_cmd));
+	if (n <= 0)
+		logd("Didn't write anything\n");
+
+	/* Time in req_cmd is in ms */
+	usleep(req_cmd.max_time * 1000);
+
+	ret = at204_read(ioif, resp_buf, OTP_MODE_LEN);
+
+	if (ret == STATUS_OK) {
+		logd("otp_mode: 0x%02x", resp_buf[2]);
+		switch(resp_buf[2]) {
+		case 0xAA:
+			logd(" (Read only mode)\n");
+			break;
+		case 0x55:
+			logd(" (Consumption mode)\n");
+			break;
+		case 0x00:
+			logd(" (Legacy mode)\n");
+			break;
+		default:
+			logd(" (Uknown mode)\n");
+		}
+	}
+
+
+err:
+	free(serialized_pkt);
+}
+
 bool cmd_wake(struct io_interface *ioif)
 {
 	int ret = STATUS_EXEC_ERROR;

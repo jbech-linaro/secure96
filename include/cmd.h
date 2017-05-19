@@ -12,6 +12,7 @@
 #define RANDOM_LEN 32
 #define DEVREV_LEN 4
 #define SERIALNUM_LEN 9
+#define OTP_MODE_LEN 4
 
 /* Word address values */
 #define PKT_FUNC_RESET		0x0
@@ -36,6 +37,9 @@
 #define OPCODE_SHA 		0x47
 #define OPCODE_UPDATEEXTRA 	0x20
 #define OPCODE_WRITE 		0x12
+
+/* Addresses etc for the configuration zone. */
+#define OTP_ADDR		0x4
 
 /*
  * Device command structure according to section 8.5.1 in the ATSHA204A
@@ -64,6 +68,7 @@ struct __attribute__ ((__packed__)) cmd_packet {
 
 void get_random(struct io_interface *ioif);
 void cmd_get_serialnbr(struct io_interface *ioif);
+void cmd_get_otp_mode(struct io_interface *ioif);
 bool wake(struct io_interface *ioif);
 
 #endif

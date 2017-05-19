@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
 	cmd_get_random(ioif);
 	cmd_devrev(ioif);
 	cmd_get_serialnbr(ioif);
+	cmd_get_otp_mode(ioif);
 
 	ret = at204_close(ioif);
 	if (ret != STATUS_OK) {
