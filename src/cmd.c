@@ -265,15 +265,39 @@ err:
 
 void cmd_get_otp_mode(struct io_interface *ioif)
 {
+	uint8_t otp_mode = 0;
+	cmd_config_zone_read(ioif, OTP_ADDR, OTP_OFFSET, WORD_SIZE, &otp_mode,
+			     OTP_SIZE);
+
+	logd("otp_mode: 0x%02x", otp_mode);
+	switch(otp_mode) {
+	case 0xAA:
+		logd(" (Read only mode)\n");
+		break;
+	case 0x55:
+		logd(" (Consumption mode)\n");
+		break;
+	case 0x00:
+		logd(" (Legacy mode)\n");
+		break;
+	default:
+		logd(" (Uknown mode)\n");
+	}
+}
+
+void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
+			  uint8_t offset, size_t size, uint8_t *data,
+			  size_t data_size)
+{
 	int n = 0;
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet req_cmd;
-	uint8_t resp_buf[OTP_MODE_LEN];
+	uint8_t resp_buf[size];
 	uint8_t *serialized_pkt = NULL;
 
 	get_command(&req_cmd, OPCODE_READ);
 
-	req_cmd.param2[0] = OTP_ADDR;
+	req_cmd.param2[0] = addr;
 	req_cmd.param2[1] = 0;
 
 	serialized_pkt = serialize(&req_cmd);
@@ -290,24 +314,8 @@ void cmd_get_otp_mode(struct io_interface *ioif)
 
 	ret = at204_read(ioif, resp_buf, OTP_MODE_LEN);
 
-	if (ret == STATUS_OK) {
-		logd("otp_mode: 0x%02x", resp_buf[2]);
-		switch(resp_buf[2]) {
-		case 0xAA:
-			logd(" (Read only mode)\n");
-			break;
-		case 0x55:
-			logd(" (Consumption mode)\n");
-			break;
-		case 0x00:
-			logd(" (Legacy mode)\n");
-			break;
-		default:
-			logd(" (Uknown mode)\n");
-		}
-	}
-
-
+	if (ret == STATUS_OK)
+		memcpy(data, &resp_buf[offset], data_size);
 err:
 	free(serialized_pkt);
 }

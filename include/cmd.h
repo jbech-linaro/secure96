@@ -40,6 +40,8 @@
 
 /* Addresses etc for the configuration zone. */
 #define OTP_ADDR		0x4
+#define OTP_OFFSET		0x2
+#define OTP_SIZE		0x1
 
 /*
  * Device command structure according to section 8.5.1 in the ATSHA204A
@@ -69,6 +71,11 @@ struct __attribute__ ((__packed__)) cmd_packet {
 void get_random(struct io_interface *ioif);
 void cmd_get_serialnbr(struct io_interface *ioif);
 void cmd_get_otp_mode(struct io_interface *ioif);
+
+void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
+			  uint8_t offset, size_t size, uint8_t *data,
+			  size_t data_size);
+
 bool wake(struct io_interface *ioif);
 
 #endif
