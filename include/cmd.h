@@ -63,6 +63,7 @@ struct __attribute__ ((__packed__)) cmd_packet {
 };
 
 void get_random(struct io_interface *ioif);
+void cmd_get_serialnbr(struct io_interface *ioif);
 bool wake(struct io_interface *ioif);
 
 #endif
