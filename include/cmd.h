@@ -57,6 +57,10 @@
 #define SERIALNBR_OFFSET8	0x0
 #define SERIALNBR_SIZE8		0x1
 
+#define LOCK_DATA_ADDR		0x15
+#define LOCK_DATA_OFFSET	0x2
+#define LOCK_DATA_SIZE		0x1
+
 /*
  * Base address for slot configuration starts at 0x5. Each word contains slot
  * configuration for two slots.
@@ -113,6 +117,8 @@ void cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr);
 void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
 			  uint8_t offset, size_t size, void *data,
 			  size_t data_size);
+
+void cmd_get_lock_data(struct io_interface *ioif);
 
 bool wake(struct io_interface *ioif);
 

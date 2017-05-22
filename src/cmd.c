@@ -256,6 +256,14 @@ void cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr)
 	hexdump("slot_config", &slot_config, SLOT_CONFIG_SIZE);
 }
 
+void cmd_get_lock_data(struct io_interface *ioif)
+{
+	uint8_t lock_data = 0;
+	cmd_config_zone_read(ioif, LOCK_DATA_ADDR, LOCK_DATA_OFFSET, WORD_SIZE,
+			     &lock_data, LOCK_DATA_SIZE);
+	logd("lock_data: 0x%02x\n", lock_data);
+}
+
 void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
 			  uint8_t offset, size_t size, void *data,
 			  size_t data_size)

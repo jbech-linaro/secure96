@@ -37,6 +37,8 @@ int main(int argc, char *argv[])
 			cmd_get_slot_config(ioif, i);
 	}
 
+	cmd_get_lock_data(ioif);
+
 	ret = at204_close(ioif);
 	if (ret != STATUS_OK) {
 		ret = STATUS_EXEC_ERROR;
