@@ -14,6 +14,8 @@
 #define SERIALNUM_LEN 9
 #define OTP_MODE_LEN 4
 
+#define WORD_SIZE		4
+
 /* Word address values */
 #define PKT_FUNC_RESET		0x0
 #define PKT_FUNC_SLEEP		0x1
@@ -42,6 +44,18 @@
 #define OTP_ADDR		0x4
 #define OTP_OFFSET		0x2
 #define OTP_SIZE		0x1
+
+#define SERIALNBR_ADDR0_3	0x0
+#define SERIALNBR_OFFSET0_3	0x0
+#define SERIALNBR_SIZE0_3	0x4
+
+#define SERIALNBR_ADDR4_7	0x2
+#define SERIALNBR_OFFSET4_7	0x0
+#define SERIALNBR_SIZE4_7	0x4
+
+#define SERIALNBR_ADDR8		0x3
+#define SERIALNBR_OFFSET8	0x0
+#define SERIALNBR_SIZE8		0x1
 
 /*
  * Device command structure according to section 8.5.1 in the ATSHA204A
