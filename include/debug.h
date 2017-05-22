@@ -4,16 +4,24 @@
 #include <stdio.h>
 
 #ifndef EXT_DEBUG_INFO
+
+#ifdef DEBUG
 #define logd(fmt, ...) \
-	do { if (DEBUG) \
-		fprintf(stderr, fmt, ##__VA_ARGS__); \
-	} while (0)
+	fprintf(stdout, fmt, ##__VA_ARGS__);
 #else
+#define logd(fmt, ...)
+#endif
+
+#else
+
+#ifdef DEBUG
 #define logd(fmt, ...) \
-	do { if (DEBUG) \
-		fprintf(stderr, "[%s : %d]: " fmt, \
-			__func__, __LINE__, ##__VA_ARGS__); \
-	} while (0)
+		fprintf(stdout, "[%s : %d]: " fmt,
+			__func__, __LINE__, ##__VA_ARGS__;
+#else
+#define logd(fmt, ...)
+#endif
+
 #endif
 
 void hexdump(char *message, void *buf, size_t len);

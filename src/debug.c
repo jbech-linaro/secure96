@@ -5,7 +5,6 @@
 
 void hexdump(char *message, void *buf, size_t len)
 {
-#ifdef DEBUG
 	int i;
 	uint8_t *b = (uint8_t *)buf;
 
@@ -13,13 +12,8 @@ void hexdump(char *message, void *buf, size_t len)
 	assert(buf);
 	assert(len);
 
-	printf("%s: ", message);
+	logd("%s: ", message);
 	for (i = 0; i < len; i++)
-		printf("0x%02x ", b[i]);
-	printf("%s", "\n");
-#else
-	(void)message;
-	(void)buf;
-	(void)len;
-#endif
+		logd("0x%02x ", b[i]);
+	logd("%s", "\n");
 }
