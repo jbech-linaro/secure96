@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
 	}
 
 	cmd_get_lock_data(ioif);
+	cmd_get_lock_config(ioif);
 
 	ret = at204_close(ioif);
 	if (ret != STATUS_OK) {

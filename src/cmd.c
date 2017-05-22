@@ -264,6 +264,14 @@ void cmd_get_lock_data(struct io_interface *ioif)
 	logd("lock_data: 0x%02x\n", lock_data);
 }
 
+void cmd_get_lock_config(struct io_interface *ioif)
+{
+	uint8_t lock_config = 0;
+	cmd_config_zone_read(ioif, LOCK_CONFIG_ADDR, LOCK_CONFIG_OFFSET, WORD_SIZE,
+			     &lock_config, LOCK_CONFIG_SIZE);
+	logd("lock_config: 0x%02x\n", lock_config);
+}
+
 void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
 			  uint8_t offset, size_t size, void *data,
 			  size_t data_size)
