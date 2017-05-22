@@ -58,6 +58,28 @@
 #define SERIALNBR_SIZE8		0x1
 
 /*
+ * Base address for slot configuration starts at 0x5. Each word contains slot
+ * configuration for two slots.
+ */
+static uint8_t SLOT_CONFIG_ADDR(slotnbr)
+{
+	uint8_t addr = 0x5;
+	if (slotnbr % 2)
+		slotnbr--;
+	slotnbr >>= 1;
+	return addr + slotnbr;
+}
+
+#if FIXME
+/* Can one use a macro like this instead of the function above? */
+#define SLOT_CONFIG_ADDR(slotnbr) (slotnbr % 2 ? \
+	0x5 + (--slotnbr >> 1) : \
+	0x5 + (slotnbr >> 1))
+#endif
+
+#define SLOT_CONFIG_OFFSET(slotnbr) (slotnbr % 2 ? 2 : 0)
+
+/*
  * Device command structure according to section 8.5.1 in the ATSHA204A
  * datasheet.
  * @param command	the command flag
@@ -85,6 +107,7 @@ struct __attribute__ ((__packed__)) cmd_packet {
 void get_random(struct io_interface *ioif);
 void cmd_get_serialnbr(struct io_interface *ioif);
 void cmd_get_otp_mode(struct io_interface *ioif);
+void cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr);
 
 void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
 			  uint8_t offset, size_t size, uint8_t *data,
