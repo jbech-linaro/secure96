@@ -78,6 +78,7 @@ static uint8_t SLOT_CONFIG_ADDR(slotnbr)
 #endif
 
 #define SLOT_CONFIG_OFFSET(slotnbr) (slotnbr % 2 ? 2 : 0)
+#define SLOT_CONFIG_SIZE 0x2
 
 /*
  * Device command structure according to section 8.5.1 in the ATSHA204A
@@ -110,7 +111,7 @@ void cmd_get_otp_mode(struct io_interface *ioif);
 void cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr);
 
 void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
-			  uint8_t offset, size_t size, uint8_t *data,
+			  uint8_t offset, size_t size, void *data,
 			  size_t data_size);
 
 bool wake(struct io_interface *ioif);

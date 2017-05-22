@@ -13,7 +13,7 @@ void hexdump(char *message, void *buf, size_t len)
 	assert(buf);
 	assert(len);
 
-	logd("%s: ", message);
+	printf("%s: ", message);
 	for (i = 0; i < len; i++)
 		printf("0x%02x ", b[i]);
 	printf("%s", "\n");

@@ -243,8 +243,21 @@ void cmd_get_otp_mode(struct io_interface *ioif)
 	}
 }
 
+void cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr)
+{
+	uint16_t slot_config;
+
+	logd("slotnbr: %d, addr: 0x%02x, offset: %d\n", slotnbr,
+	     SLOT_CONFIG_ADDR(slotnbr), SLOT_CONFIG_OFFSET(slotnbr));
+
+	cmd_config_zone_read(ioif, SLOT_CONFIG_ADDR(slotnbr),
+			     SLOT_CONFIG_OFFSET(slotnbr), WORD_SIZE,
+			     &slot_config, SLOT_CONFIG_SIZE);
+	hexdump("slot_config", &slot_config, SLOT_CONFIG_SIZE);
+}
+
 void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
-			  uint8_t offset, size_t size, uint8_t *data,
+			  uint8_t offset, size_t size, void *data,
 			  size_t data_size)
 {
 	int n = 0;

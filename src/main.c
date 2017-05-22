@@ -31,6 +31,12 @@ int main(int argc, char *argv[])
 	cmd_get_serialnbr(ioif);
 	cmd_get_otp_mode(ioif);
 
+	{
+		int i;
+		for (i = 0; i < 16; i++)
+			cmd_get_slot_config(ioif, i);
+	}
+
 	ret = at204_close(ioif);
 	if (ret != STATUS_OK) {
 		ret = STATUS_EXEC_ERROR;
