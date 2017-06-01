@@ -2,7 +2,7 @@
 project(secmezz C)
 
 # Required cmake version
-cmake_minimum_required(VERSION 3.6.2)
+cmake_minimum_required(VERSION 3.0.2)
 
 # global needed variables
 set(APPLICATION_NAME ${PROJECT_NAME})
@@ -25,7 +25,7 @@ set(SECMEZZ-SRC src/cmd.c
 		src/i2c_linux.c
 		src/packet.c)
 
-add_definitions(-DI2C_DEVICE="/dev/i2c-1")
+add_definitions(-DI2C_DEVICE="/dev/i2c-0")
 add_definitions(-DDEBUG)
 #add_definitions(-DEXT_DEBUG_INFO)
 add_definitions(-DCMAKE_BUILD_TYPE=Debug)
