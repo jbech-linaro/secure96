@@ -367,6 +367,6 @@ bool cmd_wake(struct io_interface *ioif)
 	if (n <= 0)
 		return false;
 
-	/* FIXME: Eventually we should return true on STATUS_OK also? */
-	return at204_read(ioif, &buf, sizeof(buf)) == STATUS_AFTER_WAKE;
+	ret = at204_read(ioif, &buf, sizeof(buf));
+	return ret == STATUS_OK || ret == STATUS_AFTER_WAKE;
 }
