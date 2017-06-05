@@ -26,6 +26,7 @@ int main(int argc, char *argv[])
 	while (!cmd_wake(ioif)) {};
 	printf("ATSHA204A is awake\n");
 
+	cmd_get_nonce(ioif);
 	cmd_get_random(ioif);
 	cmd_devrev(ioif);
 	cmd_get_serialnbr(ioif);

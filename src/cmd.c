@@ -10,6 +10,13 @@
 #include <debug.h>
 #include <status.h>
 
+static size_t get_total_packet_size(struct cmd_packet *p)
+{
+	return sizeof(p->command) + sizeof(p->count) + sizeof(p->opcode) +
+		sizeof(p->param1) + sizeof(p->param2) + p->data_length +
+		sizeof(p->checksum);
+}
+
 /*
  * Calculate the number of bytes used in CRC calculation. Note that this
  * function is dependant on the struct cmd_packet and it is important that the
@@ -17,14 +24,7 @@
  */
 static size_t get_payload_size(struct cmd_packet *p)
 {
-	return offsetof(struct cmd_packet, data) -
-		offsetof(struct cmd_packet, count);
-}
-
-static size_t get_total_packet_size(struct cmd_packet *p)
-{
-	return sizeof(p->command) + sizeof(p->count) + sizeof(p->opcode) +
-		sizeof(p->param1) + sizeof(p->param2) + p->data_length +
+	return get_total_packet_size(p) - sizeof(p->command) -
 		sizeof(p->checksum);
 }
 
@@ -50,12 +50,8 @@ static uint8_t *serialize(struct cmd_packet *p)
 	assert(p);
 
 	p->count = get_count_size(p);
-	logd("count: %d\n", p->count);
-
 	pl_size = get_payload_size(p);
-
-	p->checksum = get_packet_crc(p, pl_size);
-	logd("checksum: 0x%x\n", p->checksum);
+	logd("pkt_size: %d, count: %d, payload_size: %d\n", pkt_size, p->count, pl_size);
 
 	pkt = calloc(pkt_size, sizeof(uint8_t));
 	if (!pkt)
@@ -75,6 +71,9 @@ static uint8_t *serialize(struct cmd_packet *p)
 	if (p->data && p->data_length)
 		memcpy(&pkt[6], p->data, p->data_length);
 
+	p->checksum = get_serialized_crc(&pkt[1], pl_size);
+	logd("checksum: 0x%x\n", p->checksum);
+
 	memcpy(&pkt[pkt_size - CRC_LEN], &p->checksum, CRC_LEN);
 
 	return pkt;
@@ -86,6 +85,8 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 
 	p->command = PKT_FUNC_COMMAND;
 	p->opcode = opcode;
+	p->data = NULL;
+	p->data_length = 0;
 
 	switch (p->opcode)
 	{
@@ -111,6 +112,11 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 	case OPCODE_MAC:
 		break;
 	case OPCODE_NONCE:
+		p->count = 0;
+		p->param1 = 0;
+		p->param2[0] = 0x00;
+		p->param2[1] = 0x00;
+		p->max_time = 60; /* Table 8.4 */
 		break;
 	case OPCODE_PAUSE:
 		break;
@@ -170,6 +176,49 @@ void cmd_devrev(struct io_interface *ioif)
 		hexdump("devrev", resp_buf, DEVREV_LEN);
 err:
 	free(serialized_pkt);
+}
+
+void cmd_get_nonce(struct io_interface *ioif)
+{
+	int n = 0;
+	int ret = STATUS_EXEC_ERROR;
+	uint8_t *serialized_pkt = NULL;
+	uint8_t resp_buf[NONCE_LEN];
+	uint8_t in[20] = { 0x0,   0x1,  0x2,  0x3,
+			   0x4,   0x5,  0x6,  0x7,
+			   0x8,   0x9,  0xa,  0xb,
+			   0xc,   0xd,  0xe,  0xf,
+			   0x10, 0x11, 0x12, 0x13 };
+
+	struct cmd_packet p;
+
+	get_command(&p, OPCODE_NONCE);
+	p.data = in;
+	p.data_length = sizeof(in);
+
+	serialized_pkt = serialize(&p);
+	if (!serialized_pkt)
+		goto err;
+
+	hexdump("serialized_pkt: ", serialized_pkt,
+		get_total_packet_size(&p));
+
+	n = at204_write(ioif, serialized_pkt,
+			get_total_packet_size(&p));
+	if (n <= 0)
+		logd("Didn't write anything\n");
+
+	/* Time in req_cmd is in ms */
+	usleep(p.max_time * 1000);
+
+	ret = at204_read(ioif, &resp_buf, sizeof(resp_buf));
+	if (ret == STATUS_OK)
+		hexdump("nonce", &resp_buf, sizeof(resp_buf));
+	else
+		logd("Failed to get nonce\n");
+err:
+	free(serialized_pkt);
+	return;
 }
 
 void cmd_get_random(struct io_interface *ioif)

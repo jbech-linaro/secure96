@@ -56,6 +56,8 @@ int at204_read(struct io_interface *ioif, void *buf, size_t size)
 
 	n = ioif->read(ioif->ctx, resp_buf, resp_size);
 
+	logd("n: %d, Resp[0] size: %d, Resp[1] status/err: 0x%02x\n", n, resp_buf[0], resp_buf[1]);
+
 	/*
 	 * We expect something to be read and if read, we expect either the size
 	 * 4 or the full response length as calculated above.
@@ -70,14 +72,12 @@ int at204_read(struct io_interface *ioif, void *buf, size_t size)
 		goto out;
 	}
 
-	/* This indicates a status code or an error, see 8.1.1. */
-	if (resp_buf[0] == 4) {
-		logd("Got status/error code: 0x%0x when reading\n", resp_buf[1]);
-		ret = resp_buf[1];
-	} else if (resp_buf[0] == resp_size) {
+	if (resp_buf[0] == resp_size) {
 		logd("Got the expexted amount of data\n");
 		memcpy(buf, resp_buf + 1, size);
 		ret = STATUS_OK;
+	} else {
+		logd("Something went wrong!\n");
 	}
 out:
 	free(resp_buf);
