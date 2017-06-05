@@ -9,11 +9,11 @@
 #define ZONE_OTP_BITS 		1
 #define ZONE_DATA_BITS 		2
 
-#define NONCE_LEN 32
-#define RANDOM_LEN 32
-#define DEVREV_LEN 4
-#define SERIALNUM_LEN 9
-#define OTP_MODE_LEN 4
+#define NONCE_LEN		32
+#define RANDOM_LEN		32
+#define DEVREV_LEN		4
+#define SERIALNUM_LEN		9
+#define OTP_MODE_LEN		4
 
 #define WORD_SIZE		4
 
@@ -114,20 +114,18 @@ struct __attribute__ ((__packed__)) cmd_packet {
 	uint16_t checksum;
 };
 
-void cmd_devrev(struct io_interface *ioif);
-void cmd_get_nonce(struct io_interface *ioif);
-void cmd_get_random(struct io_interface *ioif);
-void cmd_get_serialnbr(struct io_interface *ioif);
-void cmd_get_otp_mode(struct io_interface *ioif);
-void cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr);
+bool wake(struct io_interface *ioif);
 
 void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
 			  uint8_t offset, size_t size, void *data,
 			  size_t data_size);
-
-void cmd_get_lock_data(struct io_interface *ioif);
+void cmd_get_devrev(struct io_interface *ioif);
 void cmd_get_lock_config(struct io_interface *ioif);
-
-bool wake(struct io_interface *ioif);
+void cmd_get_lock_data(struct io_interface *ioif);
+void cmd_get_nonce(struct io_interface *ioif);
+void cmd_get_otp_mode(struct io_interface *ioif);
+void cmd_get_random(struct io_interface *ioif);
+void cmd_get_serialnbr(struct io_interface *ioif);
+void cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr);
 
 #endif

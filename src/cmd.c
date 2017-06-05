@@ -149,33 +149,99 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 	}
 }
 
-void cmd_devrev(struct io_interface *ioif)
+bool cmd_wake(struct io_interface *ioif)
+{
+	int ret = STATUS_EXEC_ERROR;
+	ssize_t n = 0;
+	uint8_t cmd = CMD_WAKEUP;
+	uint8_t buf;
+
+	n = at204_write(ioif, &cmd, sizeof(cmd));
+	if (n <= 0)
+		return false;
+
+	ret = at204_read(ioif, &buf, sizeof(buf));
+	return ret == STATUS_OK || ret == STATUS_AFTER_WAKE;
+}
+
+void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
+			  uint8_t offset, size_t size, void *data,
+			  size_t data_size)
 {
 	int n = 0;
 	int ret = STATUS_EXEC_ERROR;
-	struct cmd_packet req_cmd;
-	uint8_t resp_buf[DEVREV_LEN];
+	struct cmd_packet p;
+	uint8_t resp_buf[size];
 	uint8_t *serialized_pkt = NULL;
 
-	get_command(&req_cmd, OPCODE_DEVREV);
+	get_command(&p, OPCODE_READ);
 
-	serialized_pkt = serialize(&req_cmd);
+	p.param2[0] = addr;
+	p.param2[1] = 0;
+
+	serialized_pkt = serialize(&p);
 	if (!serialized_pkt)
 		goto err;
 
 	n = at204_write(ioif, serialized_pkt,
-			get_total_packet_size(&req_cmd));
+			get_total_packet_size(&p));
 	if (n <= 0)
 		logd("Didn't write anything\n");
 
-	/* Time in req_cmd is in ms */
-	usleep(req_cmd.max_time * 1000);
+	/* Time in p is in ms */
+	usleep(p.max_time * 1000);
+
+	ret = at204_read(ioif, resp_buf, OTP_MODE_LEN);
+
+	if (ret == STATUS_OK)
+		memcpy(data, &resp_buf[offset], data_size);
+err:
+	free(serialized_pkt);
+}
+
+void cmd_get_devrev(struct io_interface *ioif)
+{
+	int n = 0;
+	int ret = STATUS_EXEC_ERROR;
+	struct cmd_packet p;
+	uint8_t resp_buf[DEVREV_LEN];
+	uint8_t *serialized_pkt = NULL;
+
+	get_command(&p, OPCODE_DEVREV);
+
+	serialized_pkt = serialize(&p);
+	if (!serialized_pkt)
+		goto err;
+
+	n = at204_write(ioif, serialized_pkt,
+			get_total_packet_size(&p));
+	if (n <= 0)
+		logd("Didn't write anything\n");
+
+	/* Time in p is in ms */
+	usleep(p.max_time * 1000);
 
 	ret = at204_read(ioif, resp_buf, DEVREV_LEN);
 	if (ret == STATUS_OK)
 		hexdump("devrev", resp_buf, DEVREV_LEN);
 err:
 	free(serialized_pkt);
+}
+
+void cmd_get_lock_config(struct io_interface *ioif)
+{
+	uint8_t lock_config = 0;
+	cmd_config_zone_read(ioif, LOCK_CONFIG_ADDR, LOCK_CONFIG_OFFSET, WORD_SIZE,
+			     &lock_config, LOCK_CONFIG_SIZE);
+	logd("lock_config: 0x%02x\n", lock_config);
+}
+
+void cmd_get_lock_data(struct io_interface *ioif)
+{
+	uint8_t lock_data = 0;
+	cmd_config_zone_read(ioif, LOCK_DATA_ADDR, LOCK_DATA_OFFSET, WORD_SIZE,
+			     &lock_data, LOCK_DATA_SIZE);
+	logd("lock_data: 0x%02x\n", lock_data);
 }
 
 void cmd_get_nonce(struct io_interface *ioif)
@@ -208,7 +274,7 @@ void cmd_get_nonce(struct io_interface *ioif)
 	if (n <= 0)
 		logd("Didn't write anything\n");
 
-	/* Time in req_cmd is in ms */
+	/* Time in p is in ms */
 	usleep(p.max_time * 1000);
 
 	ret = at204_read(ioif, &resp_buf, sizeof(resp_buf));
@@ -221,6 +287,28 @@ err:
 	return;
 }
 
+void cmd_get_otp_mode(struct io_interface *ioif)
+{
+	uint8_t otp_mode = 0;
+	cmd_config_zone_read(ioif, OTP_ADDR, OTP_OFFSET, WORD_SIZE, &otp_mode,
+			     OTP_SIZE);
+
+	logd("otp_mode: 0x%02x", otp_mode);
+	switch(otp_mode) {
+	case 0xAA:
+		logd(" (Read only mode)\n");
+		break;
+	case 0x55:
+		logd(" (Consumption mode)\n");
+		break;
+	case 0x00:
+		logd(" (Legacy mode)\n");
+		break;
+	default:
+		logd(" (Uknown mode)\n");
+	}
+}
+
 void cmd_get_random(struct io_interface *ioif)
 {
 	int n = 0;
@@ -228,21 +316,21 @@ void cmd_get_random(struct io_interface *ioif)
 	uint8_t *serialized_pkt = NULL;
 	uint8_t resp_buf[RANDOM_LEN];
 
-	struct cmd_packet req_cmd;
+	struct cmd_packet p;
 
-	get_command(&req_cmd, OPCODE_RANDOM);
+	get_command(&p, OPCODE_RANDOM);
 
-	serialized_pkt = serialize(&req_cmd);
+	serialized_pkt = serialize(&p);
 	if (!serialized_pkt)
 		goto err;
 
 	n = at204_write(ioif, serialized_pkt,
-			get_total_packet_size(&req_cmd));
+			get_total_packet_size(&p));
 	if (n <= 0)
 		logd("Didn't write anything\n");
 
-	/* Time in req_cmd is in ms */
-	usleep(req_cmd.max_time * 1000);
+	/* Time in p is in ms */
+	usleep(p.max_time * 1000);
 
 	ret = at204_read(ioif, resp_buf, RANDOM_LEN);
 	if (ret == STATUS_OK)
@@ -270,28 +358,6 @@ void cmd_get_serialnbr(struct io_interface *ioif)
 	hexdump("serialnbr", serial_nbr, SERIALNUM_LEN);
 }
 
-void cmd_get_otp_mode(struct io_interface *ioif)
-{
-	uint8_t otp_mode = 0;
-	cmd_config_zone_read(ioif, OTP_ADDR, OTP_OFFSET, WORD_SIZE, &otp_mode,
-			     OTP_SIZE);
-
-	logd("otp_mode: 0x%02x", otp_mode);
-	switch(otp_mode) {
-	case 0xAA:
-		logd(" (Read only mode)\n");
-		break;
-	case 0x55:
-		logd(" (Consumption mode)\n");
-		break;
-	case 0x00:
-		logd(" (Legacy mode)\n");
-		break;
-	default:
-		logd(" (Uknown mode)\n");
-	}
-}
-
 void cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr)
 {
 	uint16_t slot_config;
@@ -303,70 +369,4 @@ void cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr)
 			     SLOT_CONFIG_OFFSET(slotnbr), WORD_SIZE,
 			     &slot_config, SLOT_CONFIG_SIZE);
 	hexdump("slot_config", &slot_config, SLOT_CONFIG_SIZE);
-}
-
-void cmd_get_lock_data(struct io_interface *ioif)
-{
-	uint8_t lock_data = 0;
-	cmd_config_zone_read(ioif, LOCK_DATA_ADDR, LOCK_DATA_OFFSET, WORD_SIZE,
-			     &lock_data, LOCK_DATA_SIZE);
-	logd("lock_data: 0x%02x\n", lock_data);
-}
-
-void cmd_get_lock_config(struct io_interface *ioif)
-{
-	uint8_t lock_config = 0;
-	cmd_config_zone_read(ioif, LOCK_CONFIG_ADDR, LOCK_CONFIG_OFFSET, WORD_SIZE,
-			     &lock_config, LOCK_CONFIG_SIZE);
-	logd("lock_config: 0x%02x\n", lock_config);
-}
-
-void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
-			  uint8_t offset, size_t size, void *data,
-			  size_t data_size)
-{
-	int n = 0;
-	int ret = STATUS_EXEC_ERROR;
-	struct cmd_packet req_cmd;
-	uint8_t resp_buf[size];
-	uint8_t *serialized_pkt = NULL;
-
-	get_command(&req_cmd, OPCODE_READ);
-
-	req_cmd.param2[0] = addr;
-	req_cmd.param2[1] = 0;
-
-	serialized_pkt = serialize(&req_cmd);
-	if (!serialized_pkt)
-		goto err;
-
-	n = at204_write(ioif, serialized_pkt,
-			get_total_packet_size(&req_cmd));
-	if (n <= 0)
-		logd("Didn't write anything\n");
-
-	/* Time in req_cmd is in ms */
-	usleep(req_cmd.max_time * 1000);
-
-	ret = at204_read(ioif, resp_buf, OTP_MODE_LEN);
-
-	if (ret == STATUS_OK)
-		memcpy(data, &resp_buf[offset], data_size);
-err:
-	free(serialized_pkt);
-}
-
-bool cmd_wake(struct io_interface *ioif)
-{
-	int ret = STATUS_EXEC_ERROR;
-	ssize_t n = 0;
-	uint8_t cmd = CMD_WAKEUP;
-	uint8_t buf;
-
-	n = at204_write(ioif, &cmd, sizeof(cmd));
-	if (n <= 0)
-		return false;
-
-	ret = at204_read(ioif, &buf, sizeof(buf));
-	return ret == STATUS_OK || ret == STATUS_AFTER_WAKE;
 }
