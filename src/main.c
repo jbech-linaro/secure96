@@ -13,6 +13,12 @@ int main(int argc, char *argv[])
 {
 	int fd = -1;
 	int ret = STATUS_EXEC_ERROR;
+	uint8_t dummy[] = {
+		0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1,
+		0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1,
+		0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1,
+		0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1, 0x1
+	};
 
 	printf("ATSHA204A on %s @ addr 0x%x\n", I2C_DEVICE, ATSHA204A_ADDR);
 
@@ -57,8 +63,23 @@ int main(int argc, char *argv[])
 	printf("\n - Nonce -\n");
 	cmd_get_nonce(ioif);
 
-	printf("\n - Write -\n");
-	cmd_write(ioif, ZONE_DATA, 0, NULL, 0);
+	{
+		uint8_t conf[] = { 0x01, 0x02, 0x03, 0x04 };
+		printf("\n - Write Slot Config 1 -\n");
+		cmd_write(ioif, ZONE_CONFIG, SLOT_CONFIG_ADDR(0x00), conf, sizeof(conf));
+
+		printf("\n - Read Slot Config 0/1 -\n");
+		cmd_get_slot_config(ioif, 0);
+
+		printf("\n - Read Slot Config 0 -\n");
+		cmd_get_slot_config(ioif, 0);
+
+		printf("\n - Read Slot Config 1 -\n");
+		cmd_get_slot_config(ioif, 1);
+	}
+
+	printf("\n - Write 0x01 to data zone -\n");
+	cmd_write(ioif, ZONE_DATA, SLOT_ADDR(0x01), dummy, sizeof(dummy));
 
 	ret = at204_close(ioif);
 	if (ret != STATUS_OK) {

@@ -83,6 +83,8 @@ static uint8_t SLOT_CONFIG_ADDR(slotnbr)
 	return addr + slotnbr;
 }
 
+#define SLOT_ADDR(id) (8 * id)
+
 #if FIXME
 /* Can one use a macro like this instead of the function above? */
 #define SLOT_CONFIG_ADDR(slotnbr) (slotnbr % 2 ? \

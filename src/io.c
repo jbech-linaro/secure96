@@ -101,6 +101,8 @@ int at204_write2(struct io_interface *ioif, struct cmd_packet *p)
 
 	n = ioif->write(ioif->ctx, serialized_pkt, get_total_packet_size(p));
 
+	/* Time in p is in ms */
+	usleep(p->max_time * 1000);
 err:
 	free(serialized_pkt);
 
@@ -118,9 +120,6 @@ int at204_msg(struct io_interface *ioif, struct cmd_packet *p, void *resp_buf,
 		/* FIXME: What to return here? */
 		logd("Didn't write anything\n");
 	}
-
-	/* Time in p is in ms */
-	usleep(p->max_time * 1000);
 
 	return at204_read(ioif, resp_buf, size);
 }
