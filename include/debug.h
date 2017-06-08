@@ -8,8 +8,12 @@
 #ifdef DEBUG
 #define logd(fmt, ...) \
 	fprintf(stdout, fmt, ##__VA_ARGS__);
+
+#define loge(fmt, ...) \
+	fprintf(stderr, fmt, ##__VA_ARGS__);
 #else
 #define logd(fmt, ...)
+#define loge(fmt, ...)
 #endif
 
 #else

@@ -32,4 +32,6 @@ int at204_write(struct io_interface *ioif, void *buf, size_t size);
 int at204_write2(struct io_interface *ioif, struct cmd_packet *p);
 int at204_read(struct io_interface *ioif, void *buf, size_t size);
 int at204_close(struct io_interface *ioif);
+int at204_msg(struct io_interface *ioif, struct cmd_packet *p, void *resp_buf,
+	      size_t size);
 #endif

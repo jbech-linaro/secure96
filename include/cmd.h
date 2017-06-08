@@ -95,17 +95,17 @@ static uint8_t SLOT_CONFIG_ADDR(slotnbr)
 
 bool wake(struct io_interface *ioif);
 
-void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
+int cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
 			  uint8_t offset, size_t size, void *data,
 			  size_t data_size);
-void cmd_get_devrev(struct io_interface *ioif);
-void cmd_get_lock_config(struct io_interface *ioif);
-void cmd_get_lock_data(struct io_interface *ioif);
-void cmd_get_nonce(struct io_interface *ioif);
-void cmd_get_otp_mode(struct io_interface *ioif);
-void cmd_get_random(struct io_interface *ioif);
-void cmd_get_serialnbr(struct io_interface *ioif);
-void cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr);
-void cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
-	       uint8_t *data, size_t size);
+int cmd_get_devrev(struct io_interface *ioif);
+int cmd_get_lock_config(struct io_interface *ioif);
+int cmd_get_lock_data(struct io_interface *ioif);
+int cmd_get_nonce(struct io_interface *ioif);
+int cmd_get_otp_mode(struct io_interface *ioif);
+int cmd_get_random(struct io_interface *ioif);
+int cmd_get_serialnbr(struct io_interface *ioif);
+int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr);
+int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
+	      uint8_t *data, size_t size);
 #endif

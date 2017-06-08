@@ -39,7 +39,6 @@ int main(int argc, char *argv[])
 
 	printf("\n - OTP mode -\n");
 	cmd_get_otp_mode(ioif);
-
 	{
 		int i;
 		printf("\n - Slotconfig  -\n");
