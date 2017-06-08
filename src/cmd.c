@@ -109,8 +109,19 @@ int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	uint8_t resp_buf[size];
 
 	assert(zone < ZONE_END);
+	assert(size == 4 || size == 32);
 
 	get_command(&p, OPCODE_READ);
+
+	/*
+	 * Bit 7 should be '1' for 32 byte reads and always zero, when zone is
+	 * OTP (see Table 8-33 in the specification).
+	 */
+	if (zone == ZONE_OTP)
+		zone &= ~(1 << 7);
+	else if (data_size == 32)
+		zone &= (1 << 7);
+
 	p.param1 = zone;
 	p.param2[0] = addr;
 	p.param2[1] = 0;
@@ -119,9 +130,9 @@ int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 
 	if (ret == STATUS_OK)
 		memcpy(data, &resp_buf[offset], data_size);
-	else {
+	else
 		loge("Failed to read from config zone!\n");
-	}
+
 	return ret;
 }
 
