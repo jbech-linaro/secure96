@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <cmd.h>
 #include <debug.h>
 #include <device.h>
 #include <io.h>
@@ -42,8 +43,10 @@ int main(int argc, char *argv[])
 	{
 		int i;
 		printf("\n - Slotconfig  -\n");
-		for (i = 0; i < 16; i++)
+		for (i = 0; i < 16; i++) {
+			printf("\n");
 			cmd_get_slot_config(ioif, i);
+		}
 	}
 
 	printf("\n - Lock Data -\n");
@@ -54,6 +57,9 @@ int main(int argc, char *argv[])
 
 	printf("\n - Nonce -\n");
 	cmd_get_nonce(ioif);
+
+	printf("\n - Write -\n");
+	cmd_write(ioif, ZONE_DATA, 0, NULL, 0);
 
 	ret = at204_close(ioif);
 	if (ret != STATUS_OK) {

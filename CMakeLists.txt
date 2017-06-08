@@ -22,7 +22,8 @@ set(SECMEZZ-SRC src/cmd.c
 		src/io.c
 		src/main.c
 		src/gpl/crc.c
-		src/i2c_linux.c)
+		src/i2c_linux.c
+		src/packet.c)
 
 add_definitions(-DI2C_DEVICE="/dev/i2c-1")
 add_definitions(-DDEBUG)

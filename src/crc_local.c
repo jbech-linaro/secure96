@@ -1,5 +1,6 @@
 #include <crc_local.h>
 #include <debug.h>
+#include <packet.h>
 
 /* 
  * The calculate_crc16 comes from the hashlet code and since that is GPL

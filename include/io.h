@@ -4,6 +4,8 @@
 
 #define IO_I2C_LINUX 0
 
+struct cmd_packet;
+
 /*
  * IO block, section 8.1
  */
@@ -27,6 +29,7 @@ uint32_t register_io_interface(uint8_t io_interface_type,
 
 int at204_open(struct io_interface *ioif);
 int at204_write(struct io_interface *ioif, void *buf, size_t size);
+int at204_write2(struct io_interface *ioif, struct cmd_packet *p);
 int at204_read(struct io_interface *ioif, void *buf, size_t size);
 int at204_close(struct io_interface *ioif);
 #endif

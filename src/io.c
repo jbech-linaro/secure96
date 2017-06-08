@@ -4,6 +4,7 @@
 #include <crc_local.h>
 #include <debug.h>
 #include <io.h>
+#include <packet.h>
 #include <status.h>
 
 extern struct io_interface i2c_linux;
@@ -73,7 +74,6 @@ int at204_read(struct io_interface *ioif, void *buf, size_t size)
 	}
 
 	if (resp_buf[0] == resp_size) {
-		logd("Got the expexted amount of data\n");
 		memcpy(buf, resp_buf + 1, size);
 		ret = STATUS_OK;
 	} else {
@@ -88,4 +88,21 @@ out:
 int at204_close(struct io_interface *ioif)
 {
 	return ioif->close(ioif->ctx);
+}
+
+int at204_write2(struct io_interface *ioif, struct cmd_packet *p)
+{
+	uint8_t *serialized_pkt = NULL;
+	ssize_t n = 0;
+
+	serialized_pkt = serialize(p);
+	if (!serialized_pkt)
+		goto err;
+
+	n = ioif->write(ioif->ctx, serialized_pkt, get_total_packet_size(p));
+
+err:
+	free(serialized_pkt);
+
+	return n;
 }

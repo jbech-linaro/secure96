@@ -2,83 +2,18 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include <cmd.h>
 #include <crc_local.h>
 #include <debug.h>
+#include <packet.h>
 #include <status.h>
-
-static size_t get_total_packet_size(struct cmd_packet *p)
-{
-	return sizeof(p->command) + sizeof(p->count) + sizeof(p->opcode) +
-		sizeof(p->param1) + sizeof(p->param2) + p->data_length +
-		sizeof(p->checksum);
-}
-
-/*
- * Calculate the number of bytes used in CRC calculation. Note that this
- * function is dependant on the struct cmd_packet and it is important that the
- * struct is packed.
- */
-static size_t get_payload_size(struct cmd_packet *p)
-{
-	return get_total_packet_size(p) - sizeof(p->command) -
-		sizeof(p->checksum);
-}
-
-/*
- * Counts the size of the packet, this includes all elements in the struct
- * cmd_packet except the command type.
- */
-static size_t get_count_size(struct cmd_packet *p)
-{
-	return get_total_packet_size(p) - sizeof(p->command);
-}
 
 /*
  * This serializes a command packet. It will also calculate and store the
  * checksum for the package.
  */
-static uint8_t *serialize(struct cmd_packet *p)
-{
-	uint8_t *pkt;
-	size_t pkt_size = get_total_packet_size(p);
-	size_t pl_size;
-
-	assert(p);
-
-	p->count = get_count_size(p);
-	pl_size = get_payload_size(p);
-	logd("pkt_size: %d, count: %d, payload_size: %d\n", pkt_size, p->count, pl_size);
-
-	pkt = calloc(pkt_size, sizeof(uint8_t));
-	if (!pkt)
-		return NULL;
-
-	pkt[0] = p->command;
-	pkt[1] = p->count;
-	pkt[2] = p->opcode;
-	pkt[3] = p->param1;
-	pkt[4] = p->param2[0];
-	pkt[5] = p->param2[1];
-
-	/*
-	 * No need to set "data" to NULL if there is no data, since calloc
-	 * already set it to 0.
-	 */
-	if (p->data && p->data_length)
-		memcpy(&pkt[6], p->data, p->data_length);
-
-	p->checksum = get_serialized_crc(&pkt[1], pl_size);
-	logd("checksum: 0x%x\n", p->checksum);
-
-	memcpy(&pkt[pkt_size - CRC_LEN], &p->checksum, CRC_LEN);
-
-	return pkt;
-}
-
 void get_command(struct cmd_packet *p, uint8_t opcode)
 {
 	assert(p);
@@ -172,19 +107,12 @@ void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
 	uint8_t resp_buf[size];
-	uint8_t *serialized_pkt = NULL;
 
 	get_command(&p, OPCODE_READ);
-
 	p.param2[0] = addr;
 	p.param2[1] = 0;
 
-	serialized_pkt = serialize(&p);
-	if (!serialized_pkt)
-		goto err;
-
-	n = at204_write(ioif, serialized_pkt,
-			get_total_packet_size(&p));
+	n = at204_write2(ioif, &p);
 	if (n <= 0)
 		logd("Didn't write anything\n");
 
@@ -195,8 +123,6 @@ void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
 
 	if (ret == STATUS_OK)
 		memcpy(data, &resp_buf[offset], data_size);
-err:
-	free(serialized_pkt);
 }
 
 void cmd_get_devrev(struct io_interface *ioif)
@@ -205,16 +131,10 @@ void cmd_get_devrev(struct io_interface *ioif)
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
 	uint8_t resp_buf[DEVREV_LEN];
-	uint8_t *serialized_pkt = NULL;
 
 	get_command(&p, OPCODE_DEVREV);
 
-	serialized_pkt = serialize(&p);
-	if (!serialized_pkt)
-		goto err;
-
-	n = at204_write(ioif, serialized_pkt,
-			get_total_packet_size(&p));
+	n = at204_write2(ioif, &p);
 	if (n <= 0)
 		logd("Didn't write anything\n");
 
@@ -224,8 +144,6 @@ void cmd_get_devrev(struct io_interface *ioif)
 	ret = at204_read(ioif, resp_buf, DEVREV_LEN);
 	if (ret == STATUS_OK)
 		hexdump("devrev", resp_buf, DEVREV_LEN);
-err:
-	free(serialized_pkt);
 }
 
 void cmd_get_lock_config(struct io_interface *ioif)
@@ -248,7 +166,6 @@ void cmd_get_nonce(struct io_interface *ioif)
 {
 	int n = 0;
 	int ret = STATUS_EXEC_ERROR;
-	uint8_t *serialized_pkt = NULL;
 	uint8_t resp_buf[NONCE_LEN];
 	uint8_t in[20] = { 0x0,   0x1,  0x2,  0x3,
 			   0x4,   0x5,  0x6,  0x7,
@@ -262,15 +179,7 @@ void cmd_get_nonce(struct io_interface *ioif)
 	p.data = in;
 	p.data_length = sizeof(in);
 
-	serialized_pkt = serialize(&p);
-	if (!serialized_pkt)
-		goto err;
-
-	hexdump("serialized_pkt: ", serialized_pkt,
-		get_total_packet_size(&p));
-
-	n = at204_write(ioif, serialized_pkt,
-			get_total_packet_size(&p));
+	n = at204_write2(ioif, &p);
 	if (n <= 0)
 		logd("Didn't write anything\n");
 
@@ -282,8 +191,6 @@ void cmd_get_nonce(struct io_interface *ioif)
 		hexdump("nonce", &resp_buf, sizeof(resp_buf));
 	else
 		logd("Failed to get nonce\n");
-err:
-	free(serialized_pkt);
 	return;
 }
 
@@ -313,19 +220,13 @@ void cmd_get_random(struct io_interface *ioif)
 {
 	int n = 0;
 	int ret = STATUS_EXEC_ERROR;
-	uint8_t *serialized_pkt = NULL;
 	uint8_t resp_buf[RANDOM_LEN];
 
 	struct cmd_packet p;
 
 	get_command(&p, OPCODE_RANDOM);
 
-	serialized_pkt = serialize(&p);
-	if (!serialized_pkt)
-		goto err;
-
-	n = at204_write(ioif, serialized_pkt,
-			get_total_packet_size(&p));
+	n = at204_write2(ioif, &p);
 	if (n <= 0)
 		logd("Didn't write anything\n");
 
@@ -335,8 +236,6 @@ void cmd_get_random(struct io_interface *ioif)
 	ret = at204_read(ioif, resp_buf, RANDOM_LEN);
 	if (ret == STATUS_OK)
 		hexdump("random", resp_buf, RANDOM_LEN);
-err:
-	free(serialized_pkt);
 }
 
 void cmd_get_serialnbr(struct io_interface *ioif)
@@ -347,6 +246,7 @@ void cmd_get_serialnbr(struct io_interface *ioif)
 	cmd_config_zone_read(ioif, SERIALNBR_ADDR0_3, SERIALNBR_OFFSET0_3,
 			     WORD_SIZE, serial_nbr, SERIALNBR_SIZE0_3);
 
+#if 0
 	cmd_config_zone_read(ioif, SERIALNBR_ADDR4_7, SERIALNBR_OFFSET4_7,
 			     WORD_SIZE, serial_nbr + SERIALNBR_SIZE0_3,
 			     SERIALNBR_SIZE4_7);
@@ -354,6 +254,7 @@ void cmd_get_serialnbr(struct io_interface *ioif)
 	cmd_config_zone_read(ioif, SERIALNBR_ADDR8, SERIALNBR_OFFSET8,
 			     WORD_SIZE, serial_nbr + SERIALNBR_SIZE4_7,
 			     SERIALNBR_SIZE8);
+#endif
 
 	hexdump("serialnbr", serial_nbr, SERIALNUM_LEN);
 }
@@ -369,4 +270,14 @@ void cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr)
 			     SLOT_CONFIG_OFFSET(slotnbr), WORD_SIZE,
 			     &slot_config, SLOT_CONFIG_SIZE);
 	hexdump("slot_config", &slot_config, SLOT_CONFIG_SIZE);
+}
+
+void cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
+	       uint8_t *data, size_t size)
+{
+	ssize_t n = 0;
+	struct cmd_packet p;
+
+	logd("write!\n");
+	n = at204_write2(ioif, &p);
 }

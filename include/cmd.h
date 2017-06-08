@@ -1,13 +1,17 @@
 #ifndef __CMD_H
 #define __CMD_H
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <io.h>
 
 /* Zone encoding, this is typically param1 */
-#define ZONE_CONFIGURATION_BITS 0
-#define ZONE_OTP_BITS 		1
-#define ZONE_DATA_BITS 		2
+enum {
+	ZONE_CONFIG = 0,
+	ZONE_OTP,
+	ZONE_DATA,
+	ZONE_END
+};
 
 #define NONCE_LEN		32
 #define RANDOM_LEN		32
@@ -89,31 +93,6 @@ static uint8_t SLOT_CONFIG_ADDR(slotnbr)
 #define SLOT_CONFIG_OFFSET(slotnbr) (slotnbr % 2 ? 2 : 0)
 #define SLOT_CONFIG_SIZE 0x2
 
-/*
- * Device command structure according to section 8.5.1 in the ATSHA204A
- * datasheet.
- * @param command	the command flag
- * @param count		packet size in bytes, includes count, opcode, param1,
- * 			param2, data and checksum (command NOT included)
- * @param opcode	the operation being called
- * @param param1	first parameter, always present
- * @param param2	second parameter, always present
- * @param data		optional data for the command being called
- * @param checksum	two bytes always at the end
- */
-struct __attribute__ ((__packed__)) cmd_packet {
-	uint8_t command;
-	uint8_t count;
-	uint8_t opcode;
-	uint8_t param1;
-	uint8_t param2[2];
-	uint8_t *data;
-	uint8_t data_length;
-	/* crc = count + opcode + param{1, 2} + data */
-	uint8_t max_time; /* Max time in ms for the command */
-	uint16_t checksum;
-};
-
 bool wake(struct io_interface *ioif);
 
 void cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
@@ -127,5 +106,6 @@ void cmd_get_otp_mode(struct io_interface *ioif);
 void cmd_get_random(struct io_interface *ioif);
 void cmd_get_serialnbr(struct io_interface *ioif);
 void cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr);
-
+void cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
+	       uint8_t *data, size_t size);
 #endif
