@@ -117,8 +117,8 @@ int at204_msg(struct io_interface *ioif, struct cmd_packet *p, void *resp_buf,
 
 	n = at204_write2(ioif, p);
 	if (n <= 0) {
-		/* FIXME: What to return here? */
 		logd("Didn't write anything\n");
+		return STATUS_EXEC_ERROR;
 	}
 
 	return at204_read(ioif, resp_buf, size);
