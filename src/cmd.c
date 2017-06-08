@@ -99,15 +99,17 @@ bool cmd_wake(struct io_interface *ioif)
 	return ret == STATUS_OK || ret == STATUS_AFTER_WAKE;
 }
 
-int cmd_config_zone_read(struct io_interface *ioif, uint8_t addr,
-			  uint8_t offset, size_t size, void *data,
-			  size_t data_size)
+int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
+	     uint8_t offset, size_t size, void *data, size_t data_size)
 {
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
 	uint8_t resp_buf[size];
 
+	assert(zone < ZONE_END);
+
 	get_command(&p, OPCODE_READ);
+	p.param1 = zone;
 	p.param2[0] = addr;
 	p.param2[1] = 0;
 
@@ -143,8 +145,8 @@ int cmd_get_lock_config(struct io_interface *ioif)
 {
 	uint8_t lock_config = 0;
 	int ret = STATUS_EXEC_ERROR; 
-	ret = cmd_config_zone_read(ioif, LOCK_CONFIG_ADDR, LOCK_CONFIG_OFFSET,
-				   WORD_SIZE, &lock_config, LOCK_CONFIG_SIZE);
+	ret = cmd_read(ioif, ZONE_CONFIG, LOCK_CONFIG_ADDR, LOCK_CONFIG_OFFSET,
+		       WORD_SIZE, &lock_config, LOCK_CONFIG_SIZE);
 	logd("lock_config: 0x%02x\n", lock_config);
 	return ret;
 }
@@ -153,8 +155,8 @@ int cmd_get_lock_data(struct io_interface *ioif)
 {
 	uint8_t lock_data = 0;
 	int ret = STATUS_EXEC_ERROR;
-	ret = cmd_config_zone_read(ioif, LOCK_DATA_ADDR, LOCK_DATA_OFFSET,
-				   WORD_SIZE, &lock_data, LOCK_DATA_SIZE);
+	ret = cmd_read(ioif, ZONE_CONFIG, LOCK_DATA_ADDR, LOCK_DATA_OFFSET,
+		       WORD_SIZE, &lock_data, LOCK_DATA_SIZE);
 	logd("lock_data: 0x%02x\n", lock_data);
 	return ret;
 }
@@ -187,8 +189,8 @@ int cmd_get_otp_mode(struct io_interface *ioif)
 {
 	uint8_t otp_mode = 0;
 	int ret = STATUS_EXEC_ERROR;
-	ret = cmd_config_zone_read(ioif, OTP_ADDR, OTP_OFFSET, WORD_SIZE,
-				   &otp_mode, OTP_SIZE);
+	ret = cmd_read(ioif, ZONE_CONFIG, OTP_ADDR, OTP_OFFSET, WORD_SIZE,
+		       &otp_mode, OTP_SIZE);
 
 	logd("otp_mode: 0x%02x", otp_mode);
 	switch(otp_mode) {
@@ -230,20 +232,21 @@ int cmd_get_serialnbr(struct io_interface *ioif)
 	uint8_t serial_nbr[12] = { 0 };
 	int ret = STATUS_EXEC_ERROR;
 
-	ret = cmd_config_zone_read(ioif, SERIALNBR_ADDR0_3, SERIALNBR_OFFSET0_3,
-				   WORD_SIZE, serial_nbr, SERIALNBR_SIZE0_3);
+	ret = cmd_read(ioif, ZONE_CONFIG, SERIALNBR_ADDR0_3,
+		       SERIALNBR_OFFSET0_3, WORD_SIZE, serial_nbr,
+		       SERIALNBR_SIZE0_3);
 	if (ret != STATUS_OK)
 		goto err;
 
-	ret = cmd_config_zone_read(ioif, SERIALNBR_ADDR4_7, SERIALNBR_OFFSET4_7,
-				   WORD_SIZE, serial_nbr + SERIALNBR_SIZE0_3,
-				   SERIALNBR_SIZE4_7);
+	ret = cmd_read(ioif, ZONE_CONFIG, SERIALNBR_ADDR4_7,
+		       SERIALNBR_OFFSET4_7, WORD_SIZE, serial_nbr +
+		       SERIALNBR_SIZE0_3, SERIALNBR_SIZE4_7);
 	if (ret != STATUS_OK)
 		goto err;
 
-	ret = cmd_config_zone_read(ioif, SERIALNBR_ADDR8, SERIALNBR_OFFSET8,
-				   WORD_SIZE, serial_nbr + SERIALNBR_SIZE4_7,
-				   SERIALNBR_SIZE8);
+	ret = cmd_read(ioif, ZONE_CONFIG, SERIALNBR_ADDR8, SERIALNBR_OFFSET8,
+		       WORD_SIZE, serial_nbr + SERIALNBR_SIZE4_7,
+		       SERIALNBR_SIZE8);
 err:
 	if (ret == STATUS_OK)
 		hexdump("serialnbr", serial_nbr, SERIALNUM_LEN);
@@ -260,9 +263,9 @@ int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr)
 	logd("slotnbr: %d, addr: 0x%02x, offset: %d\n", slotnbr,
 	     SLOT_CONFIG_ADDR(slotnbr), SLOT_CONFIG_OFFSET(slotnbr));
 
-	ret = cmd_config_zone_read(ioif, SLOT_CONFIG_ADDR(slotnbr),
-				   SLOT_CONFIG_OFFSET(slotnbr), WORD_SIZE,
-				   &slot_config, SLOT_CONFIG_SIZE);
+	ret = cmd_read(ioif, ZONE_CONFIG, SLOT_CONFIG_ADDR(slotnbr),
+		       SLOT_CONFIG_OFFSET(slotnbr), WORD_SIZE, &slot_config,
+		       SLOT_CONFIG_SIZE);
 	if (ret == STATUS_OK)
 		hexdump("slot_config", &slot_config, SLOT_CONFIG_SIZE);
 	else
