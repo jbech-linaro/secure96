@@ -319,23 +319,18 @@ int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 {
 	ssize_t n = 0;
 	struct cmd_packet p;
-	int ret = STATUS_EXEC_ERROR;
 
 	get_command(&p, OPCODE_WRITE);
 	p.param1 = zone;
 	p.param2[0] = addr;
 	p.data = data;
 	p.data_length = size;
-
 #if 0
 	if (size != 0 && size != 4 && size != 32) {
 		loge("Wrong size when trying to write\n");
 		goto err;
 	}
 #endif
-
-	n = at204_write2(ioif, &p);
-	logd("cmd_write: wrote %d bytes\n", n);
 err:
-	return ret;
+	return at204_write2(ioif, &p);
 }

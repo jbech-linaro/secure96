@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 	{
 		uint8_t conf[] = { 0x01, 0x02, 0x03, 0x04 };
 		uint16_t slot_config = 0x0;
-		printf("\n - Write Slot Config 1 -\n");
+		printf("\n - Write Slot Config 0/1 -\n");
 		cmd_write(ioif, ZONE_CONFIG, SLOT_CONFIG_ADDR(0x00), conf, sizeof(conf));
 
 		printf("\n - Read Slot Config 0 -\n");
