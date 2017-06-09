@@ -49,7 +49,6 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 	case OPCODE_NONCE:
 		p->count = 0;
-		p->param1 = 0;
 		p->param2[0] = 0x00;
 		p->param2[1] = 0x00;
 		p->max_time = 60; /* Table 8.4 */
@@ -136,114 +135,140 @@ int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	return ret;
 }
 
-int cmd_get_devrev(struct io_interface *ioif)
+int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size)
 {
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
-	uint8_t resp_buf[DEVREV_LEN];
+
+	if (size != DEVREV_LEN || !buf)
+		return STATUS_BAD_PARAMETERS;
 
 	get_command(&p, OPCODE_DEVREV);
 
-	ret = at204_msg(ioif, &p, resp_buf, sizeof(resp_buf));
+	return at204_msg(ioif, &p, buf, size);
+}
+
+int cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config)
+{
+	uint8_t _lock_config = 0;
+	int ret = STATUS_EXEC_ERROR; 
+
+	ret = cmd_read(ioif, ZONE_CONFIG, LOCK_CONFIG_ADDR, LOCK_CONFIG_OFFSET,
+		       WORD_SIZE, &_lock_config, LOCK_CONFIG_SIZE);
 
 	if (ret == STATUS_OK)
-		hexdump("devrev", resp_buf, DEVREV_LEN);
-	else {
-		loge("Failed to get devrev!\n");
-	}
+		*lock_config = _lock_config;
+	else
+		*lock_config = 0;
+
 	return ret;
 }
 
-int cmd_get_lock_config(struct io_interface *ioif)
+int cmd_get_lock_data(struct io_interface *ioif, uint8_t *lock_data)
 {
-	uint8_t lock_config = 0;
-	int ret = STATUS_EXEC_ERROR; 
-	ret = cmd_read(ioif, ZONE_CONFIG, LOCK_CONFIG_ADDR, LOCK_CONFIG_OFFSET,
-		       WORD_SIZE, &lock_config, LOCK_CONFIG_SIZE);
-	logd("lock_config: 0x%02x\n", lock_config);
-	return ret;
-}
-
-int cmd_get_lock_data(struct io_interface *ioif)
-{
-	uint8_t lock_data = 0;
+	uint8_t _lock_data = 0;
 	int ret = STATUS_EXEC_ERROR;
+
 	ret = cmd_read(ioif, ZONE_CONFIG, LOCK_DATA_ADDR, LOCK_DATA_OFFSET,
-		       WORD_SIZE, &lock_data, LOCK_DATA_SIZE);
-	logd("lock_data: 0x%02x\n", lock_data);
+		       WORD_SIZE, &_lock_data, LOCK_DATA_SIZE);
+
+	if (ret == STATUS_OK)
+		*lock_data = _lock_data;
+	else
+		*lock_data = 0;
+
 	return ret;
 }
 
-int cmd_get_nonce(struct io_interface *ioif)
+int cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		  uint8_t mode, uint8_t *out, size_t out_size)
 {
 	int ret = STATUS_EXEC_ERROR;
-	uint8_t resp_buf[NONCE_LEN];
-	uint8_t in[20] = { 0x0,   0x1,  0x2,  0x3,
-			   0x4,   0x5,  0x6,  0x7,
-			   0x8,   0x9,  0xa,  0xb,
-			   0xc,   0xd,  0xe,  0xf,
-			   0x10, 0x11, 0x12, 0x13 };
-
 	struct cmd_packet p;
+
+	if (!in ||
+	    (in_size != NONCE_SHORT_NUMIN && in_size != NONCE_LONG_NUMIN) ||
+	    !out || (out_size != NONCE_SHORT_LEN && out_size != NONCE_LONG_LEN))
+		return STATUS_BAD_PARAMETERS;
+
+	if (mode != NONCE_MODE_UPDATE_SEED && mode != NONCE_MODE_NO_SEED &&
+	     mode != NONCE_MODE_PASSTHROUGH)
+		return STATUS_BAD_PARAMETERS;
+
+	if (in_size == NONCE_LONG_NUMIN && mode != NONCE_MODE_PASSTHROUGH)
+		return STATUS_BAD_PARAMETERS;
 
 	get_command(&p, OPCODE_NONCE);
-	p.data = in;
-	p.data_length = sizeof(in);
 
-	ret = at204_msg(ioif, &p, resp_buf, sizeof(resp_buf));
-	if (ret == STATUS_OK)
-		hexdump("nonce", &resp_buf, sizeof(resp_buf));
-	else
-		loge("Failed to get nonce\n");
+	p.param1 = mode;
+	p.data = in;
+	p.data_length = in_size;
+
+	ret = at204_msg(ioif, &p, out, out_size);
+
+	if (ret != STATUS_OK)
+		memset(out, 0, out_size);
+
 	return ret;
 }
 
-int cmd_get_otp_mode(struct io_interface *ioif)
+int cmd_get_otp_mode(struct io_interface *ioif, uint8_t *otp_mode)
 {
-	uint8_t otp_mode = 0;
+	uint32_t _otp_mode = 0;
 	int ret = STATUS_EXEC_ERROR;
-	ret = cmd_read(ioif, ZONE_CONFIG, OTP_ADDR, OTP_OFFSET, WORD_SIZE,
-		       &otp_mode, OTP_SIZE);
 
-	logd("otp_mode: 0x%02x", otp_mode);
-	switch(otp_mode) {
+	if (!otp_mode)
+		return ret;
+
+	ret = cmd_read(ioif, ZONE_CONFIG, OTP_CONFIG_ADDR, OTP_CONFIG_OFFSET,
+		       WORD_SIZE, &_otp_mode, OTP_CONFIG_SIZE);
+
+	*otp_mode = _otp_mode & 0xFF;
+
+#if DEBUG
+	switch(*otp_mode) {
 	case 0xAA:
-		logd(" (Read only mode)\n");
+		logd(" (OTP: Read only mode)\n");
 		break;
 	case 0x55:
-		logd(" (Consumption mode)\n");
+		logd(" (OTP: Consumption mode)\n");
 		break;
 	case 0x00:
-		logd(" (Legacy mode)\n");
+		logd(" (OTP: Legacy mode)\n");
 		break;
 	default:
-		logd(" (Uknown mode)\n");
+		logd(" (OTP: Unknown mode)\n");
 	}
+#endif
+
 	return ret;
 }
 
-int cmd_get_random(struct io_interface *ioif)
+int cmd_get_random(struct io_interface *ioif, uint8_t *buf, size_t size)
 {
 	int ret = STATUS_EXEC_ERROR;
-	uint8_t resp_buf[RANDOM_LEN];
 	struct cmd_packet p;
+
+	/*
+	 * ATSHA204A will always need to return the result from RANDOM in a 32
+	 * byte buffer, so always make this check.
+	 */
+	if (size != RANDOM_LEN || !buf)
+		return STATUS_BAD_PARAMETERS;
 
 	get_command(&p, OPCODE_RANDOM);
 
-	ret = at204_msg(ioif, &p, resp_buf, sizeof(resp_buf));
-	if (ret == STATUS_OK)
-		hexdump("random", resp_buf, RANDOM_LEN);
-	else {
-		loge("Failed to get random number!\n");
-	}
-	return ret;
+	return at204_msg(ioif, &p, buf, size);
 }
 
-int cmd_get_serialnbr(struct io_interface *ioif)
+int cmd_get_serialnbr(struct io_interface *ioif, uint8_t *buf, size_t size)
 {
 	/* Only 9 are used, but we read 4 bytes at a time */
 	uint8_t serial_nbr[12] = { 0 };
 	int ret = STATUS_EXEC_ERROR;
+
+	if (size != SERIALNUM_LEN || !buf)
+		return STATUS_BAD_PARAMETERS;
 
 	ret = cmd_read(ioif, ZONE_CONFIG, SERIALNBR_ADDR0_3,
 		       SERIALNBR_OFFSET0_3, WORD_SIZE, serial_nbr,
@@ -262,27 +287,29 @@ int cmd_get_serialnbr(struct io_interface *ioif)
 		       SERIALNBR_SIZE8);
 err:
 	if (ret == STATUS_OK)
-		hexdump("serialnbr", serial_nbr, SERIALNUM_LEN);
+		memcpy(buf, serial_nbr, size);
 	else
-		loge("Failed to get serial number!\n");
+		memset(buf, 0, size);
+
 	return ret;
 }
 
-int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr)
+int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
+			uint16_t *slot_config)
 {
-	uint16_t slot_config;
+	uint32_t _slot_config;
 	int ret = STATUS_EXEC_ERROR;
 
 	logd("slotnbr: %d, addr: 0x%02x, offset: %d\n", slotnbr,
 	     SLOT_CONFIG_ADDR(slotnbr), SLOT_CONFIG_OFFSET(slotnbr));
 
 	ret = cmd_read(ioif, ZONE_CONFIG, SLOT_CONFIG_ADDR(slotnbr),
-		       SLOT_CONFIG_OFFSET(slotnbr), WORD_SIZE, &slot_config,
+		       SLOT_CONFIG_OFFSET(slotnbr), WORD_SIZE, &_slot_config,
 		       SLOT_CONFIG_SIZE);
 	if (ret == STATUS_OK)
-		hexdump("slot_config", &slot_config, SLOT_CONFIG_SIZE);
+		*slot_config = _slot_config & 0xFFFF;
 	else
-		loge("Failed to read slotconfig!\n");
+		*slot_config = 0;
 
 	return ret;
 }

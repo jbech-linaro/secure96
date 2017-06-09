@@ -13,11 +13,21 @@ enum {
 	ZONE_END
 };
 
-#define NONCE_LEN		32
+/* Sizes for out parameter (RandOut) */
+#define NONCE_SHORT_LEN		1
+#define NONCE_LONG_LEN		32
+
+/* Sizes for in parameter (NumIn) */
+#define NONCE_SHORT_NUMIN	20
+#define NONCE_LONG_NUMIN	32
+
+#define NONCE_MODE_UPDATE_SEED  0
+#define NONCE_MODE_NO_SEED      1
+#define NONCE_MODE_PASSTHROUGH  3
+
 #define RANDOM_LEN		32
 #define DEVREV_LEN		4
 #define SERIALNUM_LEN		9
-#define OTP_MODE_LEN		4
 
 #define WORD_SIZE		4
 
@@ -46,9 +56,9 @@ enum {
 #define OPCODE_WRITE 		0x12
 
 /* Addresses etc for the configuration zone. */
-#define OTP_ADDR		0x4
-#define OTP_OFFSET		0x2
-#define OTP_SIZE		0x1
+#define OTP_CONFIG_ADDR		0x4
+#define OTP_CONFIG_OFFSET	0x2
+#define OTP_CONFIG_SIZE		0x1
 
 #define SERIALNBR_ADDR0_3	0x0
 #define SERIALNBR_OFFSET0_3	0x0
@@ -99,14 +109,25 @@ bool wake(struct io_interface *ioif);
 
 int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	     uint8_t offset, size_t size, void *data, size_t data_size);
-int cmd_get_devrev(struct io_interface *ioif);
-int cmd_get_lock_config(struct io_interface *ioif);
-int cmd_get_lock_data(struct io_interface *ioif);
-int cmd_get_nonce(struct io_interface *ioif);
-int cmd_get_otp_mode(struct io_interface *ioif);
-int cmd_get_random(struct io_interface *ioif);
-int cmd_get_serialnbr(struct io_interface *ioif);
-int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr);
+
+int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size);
+
+int cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config);
+
+int cmd_get_lock_data(struct io_interface *ioif, uint8_t *lock_data);
+
+int cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		  uint8_t mode, uint8_t *out, size_t out_size);
+
+int cmd_get_otp_mode(struct io_interface *ioif, uint8_t *otp_mode);
+
+int cmd_get_random(struct io_interface *ioif, uint8_t *buf, size_t size);
+
+int cmd_get_serialnbr(struct io_interface *ioif, uint8_t *buf, size_t size);
+
+int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
+			uint16_t *buf);
+
 int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	      uint8_t *data, size_t size);
 #endif

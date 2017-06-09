@@ -9,5 +9,7 @@
 #define STATUS_AFTER_WAKE	0x11
 #define STATUS_CRC_ERROR	0xff
 
+#define STATUS_BAD_PARAMETERS   0x99
+
 #endif
 
