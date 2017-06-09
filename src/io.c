@@ -106,19 +106,19 @@ int at204_write2(struct io_interface *ioif, struct cmd_packet *p)
 err:
 	free(serialized_pkt);
 
-	return n;
+	return n > 0 ? STATUS_OK : STATUS_EXEC_ERROR;
 }
 
 int at204_msg(struct io_interface *ioif, struct cmd_packet *p, void *resp_buf,
 	      size_t size)
 {
-	int n = 0;
+	int ret = STATUS_EXEC_ERROR;
 	assert(resp_buf);
 
-	n = at204_write2(ioif, p);
-	if (n <= 0) {
+	ret = at204_write2(ioif, p);
+	if (ret != STATUS_OK) {
 		logd("Didn't write anything\n");
-		return STATUS_EXEC_ERROR;
+		return ret;
 	}
 
 	return at204_read(ioif, resp_buf, size);
