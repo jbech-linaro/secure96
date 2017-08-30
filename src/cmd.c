@@ -37,16 +37,26 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		p->data_length = 0;
 		p->max_time = 2; /* Table 8.4 */
 		break;
+
 	case OPCODE_GENDIG:
 		break;
+
 	case OPCODE_HMAC:
+		p->param1 = 0; /* Mode */
+		p->param2[0] = 0; /* SlotID */
+		p->param2[1] = 0; /* SlotID */
+		p->max_time = 69; /* Table 8.4 */
 		break;
+
 	case OPCODE_CHECKMAC:
 		break;
+
 	case OPCODE_LOCK:
 		break;
+
 	case OPCODE_MAC:
 		break;
+
 	case OPCODE_NONCE:
 		p->count = 0;
 		p->param2[0] = 0x00;
@@ -72,10 +82,13 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		p->data_length = 0;
 		p->max_time = 4; /* Table 8.4 */
 		break;
+
 	case OPCODE_SHA:
 		break;
+
 	case OPCODE_UPDATEEXTRA:
 		break;
+
 	case OPCODE_WRITE:
 		p->max_time = 42;
 		break;
@@ -146,6 +159,19 @@ int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size)
 	get_command(&p, OPCODE_DEVREV);
 
 	return at204_msg(ioif, &p, buf, size);
+}
+
+int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint8_t *hmac)
+{
+	int ret = STATUS_EXEC_ERROR;
+	struct cmd_packet p;
+
+	if (!hmac)
+		return STATUS_BAD_PARAMETERS;
+
+	get_command(&p, OPCODE_HMAC);
+
+	return at204_msg(ioif, &p, hmac, HMAC_LEN);
 }
 
 int cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config)

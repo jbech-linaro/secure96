@@ -25,6 +25,7 @@ enum {
 #define NONCE_MODE_NO_SEED      1
 #define NONCE_MODE_PASSTHROUGH  3
 
+#define HMAC_LEN		32
 #define RANDOM_LEN		32
 #define DEVREV_LEN		4
 #define SERIALNUM_LEN		9
@@ -111,6 +112,8 @@ int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	     uint8_t offset, size_t size, void *data, size_t data_size);
 
 int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size);
+
+int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint8_t *hmac);
 
 int cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config);
 

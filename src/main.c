@@ -75,7 +75,6 @@ int main(int argc, char *argv[])
 	printf("\n - Lock Config -\n");
 	ret = cmd_get_lock_config(ioif, buf);
 	CHECK_RES("Lock Config", ret, buf, LOCK_CONFIG_SIZE);
-
 	{
 		uint8_t in_short[NONCE_SHORT_NUMIN] = {
 			  0x00, 0x01, 0x02, 0x03,
@@ -104,8 +103,16 @@ int main(int argc, char *argv[])
 		CHECK_RES("nonce (long) response code", ret, buf, 1);
 	}
 
+#if 0
+	printf("\n - HMAC -\n");
+	/* 1 << 2 is to set the TempKey.SourceFlag, since we just above did a
+	 * passthrough nonce and therefore we used no internal randomness. */
+	ret = cmd_get_hmac(ioif, 1 << 2, buf);
+	CHECK_RES("hmac", ret, buf, HMAC_LEN);
+#endif
+
 	{
-		uint8_t conf[] = { 0x01, 0x02, 0x03, 0x04 };
+		uint8_t conf[] = { 0x80, 0x80, 0x80, 0x80 };
 		uint16_t slot_config = 0x0;
 		printf("\n - Write Slot Config 0/1 -\n");
 		cmd_write(ioif, ZONE_CONFIG, SLOT_CONFIG_ADDR(0x00), conf, sizeof(conf));
