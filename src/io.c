@@ -56,8 +56,14 @@ int at204_read(struct io_interface *ioif, void *buf, size_t size)
 		return 0;
 
 	n = ioif->read(ioif->ctx, resp_buf, resp_size);
+	logd("Read n: %d bytes -> Resp[0] size: %d\n", n, resp_buf[0]);
 
-	logd("Read n: %d bytes -> Resp[0] size: %d, Resp[1] status/err: 0x%02x\n", n, resp_buf[0], resp_buf[1]);
+#if DEBUG
+	if (n == 4) {
+		logd("Got status packet! status/err: 0x%02x (%s)\n",
+		     resp_buf[1], resp2str(resp_buf[1]));
+	}
+#endif
 
 	/*
 	 * We expect something to be read and if read, we expect either the size

@@ -2,6 +2,7 @@
 #define __DEBUG_H
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #ifndef EXT_DEBUG_INFO
 
@@ -29,5 +30,6 @@
 #endif
 
 void hexdump(char *message, void *buf, size_t len);
+char *resp2str(uint8_t response_code);
 
 #endif

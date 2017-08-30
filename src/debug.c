@@ -17,3 +17,23 @@ void hexdump(char *message, void *buf, size_t len)
 		logd("0x%02x ", b[i]);
 	logd("%s", "\n");
 }
+
+char *resp2str(uint8_t response_code)
+{
+	switch (response_code) {
+	case 0x00:
+		return "Successful";
+	case 0x01:
+		return "CheckMac miscompare";
+	case 0x03:
+		return "Parse Error";
+	case 0x0F:
+		return "Execution Error";
+	case 0x11:
+		return "Awake";
+	case 0xFF:
+		return "CRC/Communication Error";
+	default:
+		return "Unknown error code";
+	}
+}
