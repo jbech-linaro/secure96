@@ -57,7 +57,7 @@ int at204_read(struct io_interface *ioif, void *buf, size_t size)
 
 	n = ioif->read(ioif->ctx, resp_buf, resp_size);
 
-	logd("n: %d, Resp[0] size: %d, Resp[1] status/err: 0x%02x\n", n, resp_buf[0], resp_buf[1]);
+	logd("Read n: %d bytes -> Resp[0] size: %d, Resp[1] status/err: 0x%02x\n", n, resp_buf[0], resp_buf[1]);
 
 	/*
 	 * We expect something to be read and if read, we expect either the size
@@ -100,6 +100,8 @@ int at204_write2(struct io_interface *ioif, struct cmd_packet *p)
 		goto err;
 
 	n = ioif->write(ioif->ctx, serialized_pkt, get_total_packet_size(p));
+
+	logd("Wrote n = 0x%02x (%d) bytes to ATSHA204A\n", n, n);
 
 	/* Time in p is in ms */
 	usleep(p->max_time * 1000);
