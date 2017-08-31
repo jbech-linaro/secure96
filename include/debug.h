@@ -21,8 +21,10 @@
 
 #ifdef DEBUG
 #define logd(fmt, ...) \
-		fprintf(stdout, "[%s : %d]: " fmt,
-			__func__, __LINE__, ##__VA_ARGS__;
+		fprintf(stdout, "[%s : %d]: " fmt,  __func__, __LINE__, ##__VA_ARGS__);
+
+#define loge(fmt, ...) \
+		fprintf(stderr, "[%s : %d]: " fmt, __func__, __LINE__, ##__VA_ARGS__);
 #else
 #define logd(fmt, ...)
 #endif
