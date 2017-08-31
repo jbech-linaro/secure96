@@ -1,5 +1,6 @@
 #ifndef __IO_H
 #define __IO_H
+#include <stddef.h>
 #include <stdint.h>
 
 #define IO_I2C_LINUX 0

@@ -13,6 +13,9 @@ enum {
 	ZONE_END
 };
 
+#define LOCK_CONFIG_LOCKED	0x0
+#define LOCK_CONFIG_UNLOCKED	0x55
+
 /* Sizes for out parameter (RandOut) */
 #define NONCE_SHORT_LEN		1
 #define NONCE_LONG_LEN		32

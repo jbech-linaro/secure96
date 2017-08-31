@@ -23,10 +23,12 @@ set(SECMEZZ-SRC src/cmd.c
 		src/main.c
 		src/gpl/crc.c
 		src/i2c_linux.c
-		src/packet.c)
+		src/packet.c
+		src/personalize.c)
 
 add_definitions(-DI2C_DEVICE="/dev/i2c-0")
 add_definitions(-DDEBUG)
+#add_definitions(-DPERSONALIZE)
 #add_definitions(-DEXT_DEBUG_INFO)
 add_definitions(-DCMAKE_BUILD_TYPE=Debug)
 

@@ -42,6 +42,15 @@ int main(int argc, char *argv[])
 	while (!cmd_wake(ioif)) {};
 	printf("ATSHA204A is awake\n");
 
+#ifdef PERSONALIZE
+	ret = atsha204a_personalize(ioif);
+	if (ret != STATUS_OK) {
+		printf("Failed to personalize the device\n");
+	}
+
+	goto out;
+#endif
+
 	printf("\n - Random -\n");
 	ret = cmd_get_random(ioif, buf, RANDOM_LEN);
 	CHECK_RES("random", ret, buf, RANDOM_LEN);
@@ -129,11 +138,12 @@ int main(int argc, char *argv[])
 	printf("\n - Write 0x01 to data zone -\n");
 	cmd_write(ioif, ZONE_DATA, SLOT_ADDR(0x01), dummy, sizeof(dummy));
 
+out:
 	ret = at204_close(ioif);
 	if (ret != STATUS_OK) {
 		ret = STATUS_EXEC_ERROR;
 		logd("Couldn't close the device\n");
 	}
-out:
+
 	return ret;
 }
