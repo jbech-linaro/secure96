@@ -120,24 +120,6 @@ int main(int argc, char *argv[])
 	CHECK_RES("hmac", ret, buf, HMAC_LEN);
 #endif
 
-	{
-		uint8_t conf[] = { 0x80, 0x80, 0x80, 0x80 };
-		uint16_t slot_config = 0x0;
-		printf("\n - Write Slot Config 0/1 -\n");
-		cmd_write(ioif, ZONE_CONFIG, SLOT_CONFIG_ADDR(0x00), conf, sizeof(conf));
-
-		printf("\n - Read Slot Config 0 -\n");
-		cmd_get_slot_config(ioif, 0, &slot_config);
-		CHECK_RES("slotconfig 0", ret, &slot_config, sizeof(slot_config));
-
-		printf("\n - Read Slot Config 1 -\n");
-		cmd_get_slot_config(ioif, 1, &slot_config);
-		CHECK_RES("slotconfig 1", ret, &slot_config, sizeof(slot_config));
-	}
-
-	printf("\n - Write 0x01 to data zone -\n");
-	cmd_write(ioif, ZONE_DATA, SLOT_ADDR(0x01), dummy, sizeof(dummy));
-
 out:
 	ret = at204_close(ioif);
 	if (ret != STATUS_OK) {

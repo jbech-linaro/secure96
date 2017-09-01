@@ -13,8 +13,14 @@ enum {
 	ZONE_END
 };
 
+#define ZONE_CONFIG_SIZE	88
+#define ZONE_OTP_SIZE 		64
+#define ZONE_DATA_SIZE		512
+
 #define LOCK_CONFIG_LOCKED	0x0
 #define LOCK_CONFIG_UNLOCKED	0x55
+#define LOCK_DATA_LOCKED	0x0
+#define LOCK_DATA_UNLOCKED	0x55
 
 /* Sizes for out parameter (RandOut) */
 #define NONCE_SHORT_LEN		1
@@ -34,6 +40,7 @@ enum {
 #define SERIALNUM_LEN		9
 
 #define WORD_SIZE		4
+#define MAX_READ_SIZE		32 /* bytes */
 
 /* Word address values */
 #define PKT_FUNC_RESET		0x0
@@ -114,6 +121,8 @@ bool wake(struct io_interface *ioif);
 int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	     uint8_t offset, size_t size, void *data, size_t data_size);
 
+int cmd_get_config_zone(struct io_interface *ioif, uint8_t *buf, size_t size);
+
 int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size);
 
 int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint8_t *hmac);
@@ -121,6 +130,8 @@ int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint8_t *hmac);
 int cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config);
 
 int cmd_get_lock_data(struct io_interface *ioif, uint8_t *lock_data);
+
+int cmd_lock_zone(struct io_interface *ioif, uint8_t zone, uint16_t *expected_crc);
 
 int cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
 		  uint8_t mode, uint8_t *out, size_t out_size);

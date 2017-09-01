@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <io.h>
 #include <cmd.h>
@@ -49,6 +50,18 @@ static struct slot_config slot_configs[] = {
 
 static bool is_configuration_locked(struct io_interface *ioif)
 {
+	uint8_t lock_config;
+	int ret = cmd_get_lock_config(ioif, &lock_config);
+	if (ret != STATUS_OK) {
+		loge("Couldn't get lock config\n");
+		return false;
+	}
+
+	return lock_config == LOCK_CONFIG_LOCKED;
+}
+
+static bool is_data_zone_locked(struct io_interface *ioif)
+{
 	uint8_t lock_data;
 	int ret = cmd_get_lock_data(ioif, &lock_data);
 	if (ret != STATUS_OK) {
@@ -56,25 +69,121 @@ static bool is_configuration_locked(struct io_interface *ioif)
 		return false;
 	}
 
-	return lock_data == LOCK_CONFIG_LOCKED;
+	return lock_data == LOCK_DATA_LOCKED;
+}
+
+/*
+ * This programs all data slots, beware that this should NOT be used in real use
+ * cases, since it uses fixed keys where the key is the same hex number as the
+ * slot. I.e, slot[0]=000000.., slot[1]=111111..., ..., slot[31]=ffffff....
+ */
+static int program_data_slots(struct io_interface *ioif, uint16_t *crc)
+{
+	int i;
+	int ret = STATUS_EXEC_ERROR;
+	uint8_t data[32] = { 0 };
+
+	for (i = 0; i < 16; i++) {
+		/* 00...00, 11...11, 22...22, ..., ff..ff */
+		memset(&data, i << 4 | i, sizeof(data));
+		/* FIXME: Take care of CRC here, need to enable incremental CRC
+		 * updates before we can do this */
+		logd("Storing: 0x%02x...0x%02x\n", data[0], data[31]);
+		ret = cmd_write(ioif, ZONE_DATA, SLOT_ADDR(i), data, sizeof(data));
+		if (ret != STATUS_OK) {
+			loge("Failed to program data slot: %d\n", i);
+			break;
+		}
+	}
+
+	return ret;
+}
+
+static int program_slot_configs(struct io_interface *ioif)
+{
+	int i;
+	int ret = STATUS_EXEC_ERROR;
+
+	for (i = 0; i < sizeof(slot_configs) / sizeof(struct slot_config); i++) {
+		logd("addr: 0x%02x, config[%02d]: 0x%02x 0x%02x, config[%02d]: 0x%02x 0x%02x\n",
+		     slot_configs[i].address,
+		     2*i, slot_configs[i].value[0], slot_configs[i].value[1],
+		     (2*i)+1, slot_configs[i].value[2], slot_configs[i].value[3]);
+
+		ret = cmd_write(ioif, ZONE_CONFIG, slot_configs[i].address,
+				slot_configs[i].value, sizeof(slot_configs[i].value));
+
+		if (ret != STATUS_OK) {
+			loge("Failed to program slot config: %d/%d\n", 2*i, (2*i) + 1);
+			break;
+		}
+	}
+
+	return ret;
+}
+
+static int lock_config_zone(struct io_interface *ioif)
+{
+	int i;
+	uint16_t crc = 0;
+	uint8_t config_zone[ZONE_CONFIG_SIZE] = { 0 };
+	int ret = STATUS_EXEC_ERROR;
+
+	ret = cmd_get_config_zone(ioif, config_zone, sizeof(config_zone));
+	if (ret != STATUS_OK)
+		goto out;
+
+	hexdump("config_zone", config_zone, ZONE_CONFIG_SIZE);
+
+	crc = calculate_crc16(config_zone, sizeof(config_zone));
+
+	ret = cmd_lock_zone(ioif, ZONE_CONFIG, &crc);
+out:
+	return ret;
+}
+
+/*
+ * FIXME: lock_config_zone and this function could be combined into a single
+ * function instead of having two almost identical functions.
+ */
+static int lock_data_zone(struct io_interface *ioif, uint16_t crc)
+{
+	/*
+	 * FIXME: Use CRC here instead of NULL, for this to work one would also
+	 * need to include the CRC for the OTP area, since the Lock command
+	 * computes the CRC as CRC16(DATAZONE + OTP).
+	 */
+	return cmd_lock_zone(ioif, ZONE_DATA, NULL);
 }
 
 int atsha204a_personalize(struct io_interface *ioif)
 {
-	int ret = STATUS_EXEC_ERROR;
 	int i;
+	int ret = STATUS_OK;
 
 	if (is_configuration_locked(ioif)) {
-		logd("Device already personalized\n");
-		return STATUS_EXEC_ERROR;
+		logd("Device config already locked\n");
+	} else {
+		ret = program_slot_configs(ioif);
+		if (ret != STATUS_OK)
+			goto out;
+
+		ret = lock_config_zone(ioif);
+		if (ret != STATUS_OK)
+			goto out;
 	}
 
-	/* Program the SlotConfigs */
-	for (i = 0; i < sizeof(slot_configs) / sizeof(struct slot_config); i++)
-		printf("addr: 0x%02x, config[%02d]: 0x%02x 0x%02x, config[%02d]: 0x%02x 0x%02x\n",
-		       slot_configs[i].address,
-		       2*i, slot_configs[i].value[0], slot_configs[i].value[1],
-		       (2*i)+1, slot_configs[i].value[2], slot_configs[i].value[3]);
+	if (is_data_zone_locked(ioif)) {
+		logd("Device data already locked\n");
+	} else {
+		uint16_t crc = 0;
 
-	return STATUS_OK;
+		ret = program_data_slots(ioif, &crc);
+		if (ret != STATUS_OK)
+			goto out;
+
+		ret = lock_data_zone(ioif, crc);
+	}
+out:
+	return ret;
 }

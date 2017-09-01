@@ -52,6 +52,7 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 
 	case OPCODE_LOCK:
+		p->max_time = 24; /* Table 8.4 */
 		break;
 
 	case OPCODE_MAC:
@@ -148,6 +149,25 @@ int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	return ret;
 }
 
+int cmd_get_config_zone(struct io_interface *ioif, uint8_t *buf, size_t size)
+{
+	int i;
+	int ret = STATUS_EXEC_ERROR;
+
+	if (size != ZONE_CONFIG_SIZE || !buf)
+		return STATUS_BAD_PARAMETERS;
+
+	/* Read word by word into the buffer */
+	for (i = 0; i < ZONE_CONFIG_SIZE / WORD_SIZE; i++) {
+		ret = cmd_read(ioif, ZONE_CONFIG, i, 0, WORD_SIZE,
+			       buf + (i * WORD_SIZE), WORD_SIZE);
+		if (ret != STATUS_OK)
+			break;
+	}
+
+	return ret;
+}
+
 int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size)
 {
 	int ret = STATUS_EXEC_ERROR;
@@ -203,6 +223,43 @@ int cmd_get_lock_data(struct io_interface *ioif, uint8_t *lock_data)
 	else
 		*lock_data = 0;
 
+	return ret;
+}
+
+int cmd_lock_zone(struct io_interface *ioif, uint8_t zone, uint16_t *expected_crc)
+{
+	int ret = STATUS_EXEC_ERROR;
+	struct cmd_packet p;
+
+	if (zone != ZONE_CONFIG && zone != ZONE_OTP && zone != ZONE_DATA)
+		goto out;
+
+	get_command(&p, OPCODE_LOCK);
+
+	/* Zero for config and one for data and OTP. */
+	if (zone == ZONE_CONFIG)
+		p.param1 = 0;
+	else
+		p.param1 = 1;
+
+	/*
+	 * If no crc was provided set the bit for that in param1 to indicate
+	 * that no CRC check will be performed by ATSHA204A when locking the
+	 * zone.
+	 */
+	if (!expected_crc)
+		p.param1 |= 0x80;
+	else {
+		p.param2[0] = (uint8_t)(*expected_crc & 0xff);
+		p.param2[1] = (uint8_t)((*expected_crc >> 8) & 0xff);
+	}
+
+	logd("Locking zone: %d with param1: 0x%02x, param2: 0x%02x 0x%02x\n",
+	     zone, p.param1, p.param2[0], p.param2[1]);
+	//ret = at204_msg(ioif, &p, out, out_size);
+	//FIXME: Read the reply and expect 0x00 for successfull operation
+	ret = STATUS_OK;
+out:
 	return ret;
 }
 
