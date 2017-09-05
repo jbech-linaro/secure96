@@ -17,11 +17,10 @@ set(APPLICATION_VERSION
 include_directories(include)
 
 set(SECMEZZ-SRC src/cmd.c
-		src/crc_local.c
+		src/crc.c
 		src/debug.c
 		src/io.c
 		src/main.c
-		src/gpl/crc.c
 		src/i2c_linux.c
 		src/packet.c
 		src/personalize.c)

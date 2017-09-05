@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include <cmd.h>
-#include <crc_local.h>
+#include <crc.h>
 #include <debug.h>
 #include <packet.h>
 #include <status.h>

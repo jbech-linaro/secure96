@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include <crc_local.h>
+#include <crc.h>
 #include <debug.h>
 #include <io.h>
 #include <packet.h>

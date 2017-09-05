@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include <crc_local.h>
+#include <crc.h>
 #include <debug.h>
 #include <packet.h>
 #include <string.h>
