@@ -1,5 +1,5 @@
 #set(CMAKE_TOOLCHAIN_FILE CMakeToolchain.txt)
-project(secmezz C)
+project(secure96 C)
 
 # Required cmake version
 cmake_minimum_required(VERSION 3.0.2)
@@ -16,7 +16,7 @@ set(APPLICATION_VERSION
 
 include_directories(include)
 
-set(SECMEZZ-SRC src/cmd.c
+set(SECURE96-SRC src/cmd.c
 		src/crc.c
 		src/debug.c
 		src/io.c
@@ -31,7 +31,7 @@ add_definitions(-DDEBUG)
 #add_definitions(-DEXT_DEBUG_INFO)
 add_definitions(-DCMAKE_BUILD_TYPE=Debug)
 
-add_executable(cshield ${SECMEZZ-SRC})
-target_link_libraries(cshield)
+add_executable(s96-204 ${SECURE96-SRC})
+target_link_libraries(s96-204)
 
 
