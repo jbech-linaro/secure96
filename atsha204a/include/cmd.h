@@ -41,6 +41,7 @@ enum {
 
 #define WORD_SIZE		4
 #define MAX_READ_SIZE		32 /* bytes */
+#define MAX_WRITE_SIZE		32
 
 /* Word address values */
 #define PKT_FUNC_RESET		0x0
@@ -115,6 +116,8 @@ static uint8_t SLOT_CONFIG_ADDR(slotnbr)
 
 #define SLOT_CONFIG_OFFSET(slotnbr) (slotnbr % 2 ? 2 : 0)
 #define SLOT_CONFIG_SIZE 0x2
+
+#define OTP_ADDR(addr) (4 * addr)
 
 bool wake(struct io_interface *ioif);
 

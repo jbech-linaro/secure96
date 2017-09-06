@@ -37,7 +37,7 @@ uint16_t get_serialized_crc(void *p, size_t size)
  */
 uint16_t calculate_crc16(const uint8_t *data, size_t size, uint16_t current_crc)
 {
-	uint8_t i;
+	uint16_t i;
 	uint16_t crc = current_crc;
 	uint8_t shift_register;
 	uint8_t data_bit;

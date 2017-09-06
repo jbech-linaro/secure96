@@ -91,7 +91,7 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 
 	case OPCODE_WRITE:
-		p->max_time = 42;
+		p->max_time = 20; /* Max is 42, lowered it to get better performance */
 		break;
 
 	default:
@@ -230,6 +230,7 @@ int cmd_lock_zone(struct io_interface *ioif, uint8_t zone, uint16_t *expected_cr
 {
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
+	uint8_t resp_buf;
 
 	if (zone != ZONE_CONFIG && zone != ZONE_OTP && zone != ZONE_DATA)
 		goto out;
@@ -247,18 +248,25 @@ int cmd_lock_zone(struct io_interface *ioif, uint8_t zone, uint16_t *expected_cr
 	 * that no CRC check will be performed by ATSHA204A when locking the
 	 * zone.
 	 */
-	if (!expected_crc)
+	if (!expected_crc) {
 		p.param1 |= 0x80;
-	else {
+		p.param2[0] = 0;
+		p.param2[1] = 0;
+	} else {
 		p.param2[0] = (uint8_t)(*expected_crc & 0xff);
 		p.param2[1] = (uint8_t)((*expected_crc >> 8) & 0xff);
 	}
 
-	logd("Locking zone: %d with param1: 0x%02x, param2: 0x%02x 0x%02x\n",
-	     zone, p.param1, p.param2[0], p.param2[1]);
-	//ret = at204_msg(ioif, &p, out, out_size);
-	//FIXME: Read the reply and expect 0x00 for successfull operation
-	ret = STATUS_OK;
+	logd("Locking zone: %s with param1: 0x%02x, param2: 0x%02x 0x%02x\n",
+	     zone2str(zone), p.param1, p.param2[0], p.param2[1]);
+	ret = at204_msg(ioif, &p, &resp_buf, sizeof(resp_buf));
+
+	/*
+	 * Both data and config has the same value when locked, so here we just
+	 * picked data.
+	 */
+	if (ret == STATUS_OK && resp_buf == LOCK_DATA_LOCKED)
+		logd("Successfully locked %s zone!\n", zone2str(zone));
 out:
 	return ret;
 }
@@ -408,6 +416,7 @@ int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	p.param2[0] = addr;
 	p.data = data;
 	p.data_length = size;
+	p.max_time = 20;
 #if 0
 	if (size != 0 && size != 4 && size != 32) {
 		loge("Wrong size when trying to write\n");

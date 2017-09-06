@@ -1,7 +1,9 @@
 #include <assert.h>
-#include <debug.h>
 #include <stdint.h>
 #include <stdlib.h>
+
+#include <cmd.h>
+#include <debug.h>
 
 void hexdump(char *message, void *buf, size_t len)
 {
@@ -33,6 +35,19 @@ char *resp2str(uint8_t response_code)
 		return "Awake";
 	case 0xFF:
 		return "CRC/Communication Error";
+	default:
+		return "Unknown error code";
+	}
+}
+
+char *zone2str(uint8_t zone)
+{
+	switch (zone) {
+	case ZONE_CONFIG:
+		return "Config";
+	case ZONE_DATA:
+	case ZONE_OTP:
+		return "Data/OTP";
 	default:
 		return "Unknown error code";
 	}
