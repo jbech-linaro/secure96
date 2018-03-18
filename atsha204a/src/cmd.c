@@ -374,7 +374,7 @@ int cmd_get_serialnbr(struct io_interface *ioif, uint8_t *buf, size_t size)
 		goto err;
 
 	ret = cmd_read(ioif, ZONE_CONFIG, SERIALNBR_ADDR8, SERIALNBR_OFFSET8,
-		       WORD_SIZE, serial_nbr + SERIALNBR_SIZE4_7,
+		       WORD_SIZE, serial_nbr + SERIALNBR_SIZE0_3 + SERIALNBR_SIZE4_7,
 		       SERIALNBR_SIZE8);
 err:
 	if (ret == STATUS_OK)
