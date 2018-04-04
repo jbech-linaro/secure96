@@ -58,22 +58,22 @@ int at204_read(struct io_interface *ioif, void *buf, size_t size)
 	n = ioif->read(ioif->ctx, resp_buf, resp_size);
 	logd("Read n: %d bytes -> Resp[0] size: %d\n", n, resp_buf[0]);
 
+	/*
+	 * We expect something to be read and if read, we expect either the size
+	 * 4 or the full response length as calculated above.
+	 */
+	if (n <= 0 || resp_buf[0] > n || resp_buf[0] != 4 && resp_buf[0] != resp_size)
+		goto out;
+
 #if DEBUG
-	if (n == 4) {
+	if (resp_buf[0] == 4 && n >= 4) {
 		logd("Got status packet! status/err: 0x%02x (%s)\n",
 		     resp_buf[1], resp2str(resp_buf[1]));
 	}
 #endif
 
-	/*
-	 * We expect something to be read and if read, we expect either the size
-	 * 4 or the full response length as calculated above.
-	 */
-	if (n <= 0 || resp_buf[0] != 4 && resp_buf[0] != resp_size)
-		goto out;
-
-	if (!crc_valid(resp_buf, resp_buf + (resp_size - CRC_LEN),
-		       resp_size - CRC_LEN)) {
+	if (!crc_valid(resp_buf, resp_buf + (resp_buf[0] - CRC_LEN),
+		       resp_buf[0] - CRC_LEN)) {
 		logd("Got incorrect CRC\n");
 		ret = STATUS_CRC_ERROR;
 		goto out;
