@@ -148,6 +148,8 @@ int cmd_get_serialnbr(struct io_interface *ioif, uint8_t *buf, size_t size);
 int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
 			uint16_t *buf);
 
+int cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value);
+
 int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	      uint8_t *data, size_t size);
 #endif

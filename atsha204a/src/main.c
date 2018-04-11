@@ -43,7 +43,14 @@ int main(int argc, char *argv[])
 	printf("ATSHA204A is awake\n");
 
 #ifdef PERSONALIZE
+	printf("\n - Personalize -\n");
 	ret = atsha204a_personalize(ioif);
+	if (ret != STATUS_OK) {
+		printf("Failed to personalize the device\n");
+	}
+
+	printf("\n - Update Extra -\n");
+	ret = cmd_update_extra(ioif, 0, 0xff);
 	if (ret != STATUS_OK) {
 		printf("Failed to personalize the device\n");
 	}
