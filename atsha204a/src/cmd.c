@@ -181,7 +181,7 @@ int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size)
 	return at204_msg(ioif, &p, buf, size);
 }
 
-int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint8_t *hmac)
+int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr, uint8_t *hmac)
 {
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
@@ -191,13 +191,22 @@ int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint8_t *hmac)
 
 	get_command(&p, OPCODE_HMAC);
 
+	p.param1 = mode;
+	/* Only the 4 least significant bits are used when determining
+	 * the SlotID. Yet, when param2 is used in a SHA-256 operation,
+	 * the entire 16-bit value is used (see Section 13.3 in the
+	 * specification)
+	 */
+	p.param2[0] = slotnbr & 0xff;
+	p.param2[1] = slotnbr >> 8;
+
 	return at204_msg(ioif, &p, hmac, HMAC_LEN);
 }
 
 int cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config)
 {
 	uint8_t _lock_config = 0;
-	int ret = STATUS_EXEC_ERROR; 
+	int ret = STATUS_EXEC_ERROR;
 
 	ret = cmd_read(ioif, ZONE_CONFIG, LOCK_CONFIG_ADDR, LOCK_CONFIG_OFFSET,
 		       WORD_SIZE, &_lock_config, LOCK_CONFIG_SIZE);
