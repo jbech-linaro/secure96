@@ -88,6 +88,8 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 
 	case OPCODE_UPDATEEXTRA:
+		p->param2[1] = 0;
+		p->max_time = 8; /* Table 8.4 */
 		break;
 
 	case OPCODE_WRITE:
@@ -403,6 +405,19 @@ int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
 		*slot_config = 0;
 
 	return ret;
+}
+
+int cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value)
+{
+	uint8_t resp_buf;
+	struct cmd_packet p;
+	int ret = STATUS_EXEC_ERROR;
+
+	get_command(&p, OPCODE_UPDATEEXTRA);
+	p.param1 = mode;
+	p.param2[0] = value;
+
+	ret = at204_msg(ioif, &p, &resp_buf, sizeof(resp_buf));
 }
 
 int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
