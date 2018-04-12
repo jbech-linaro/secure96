@@ -39,6 +39,8 @@ enum {
 #define DEVREV_LEN		4
 #define SERIALNUM_LEN		9
 #define MAC_LEN			32
+#define SHA_LEN			32
+#define SHA_BLOCK_LEN		64
 
 #define WORD_SIZE		4
 #define MAX_READ_SIZE		32 /* bytes */
@@ -153,6 +155,9 @@ int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
 			uint16_t *buf);
 
 int cmd_pause(struct io_interface *ioif, uint16_t selector);
+
+int cmd_sha(struct io_interface *ioif, uint8_t *in, size_t in_size,
+	    uint8_t *out, size_t out_size);
 
 int cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value);
 

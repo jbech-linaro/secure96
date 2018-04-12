@@ -91,6 +91,9 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 
 	case OPCODE_SHA:
+		p->param2[0] = 0;
+		p->param2[1] = 0;
+		p->max_time = 22; /* Table 8.4 */
 		break;
 
 	case OPCODE_UPDATEEXTRA:
@@ -469,6 +472,22 @@ int cmd_pause(struct io_interface *ioif, uint16_t selector)
 	p.param1 = selector;
 
 	return at204_msg(ioif, &p, &resp_buf, 1);
+}
+
+int cmd_sha(struct io_interface *ioif, uint8_t *in, size_t in_size,
+	    uint8_t *out, size_t out_size)
+{
+	struct cmd_packet p;
+
+	if (in_size && in_size % SHA_BLOCK_LEN)
+		return STATUS_BAD_PARAMETERS;
+
+	get_command(&p, OPCODE_SHA);
+	p.param1 = in_size ? 1 : 0;
+	p.data = in;
+	p.data_length = in_size;
+
+	return at204_msg(ioif, &p, out, out_size);
 }
 
 int cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value)
