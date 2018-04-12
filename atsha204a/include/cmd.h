@@ -38,6 +38,7 @@ enum {
 #define RANDOM_LEN		32
 #define DEVREV_LEN		4
 #define SERIALNUM_LEN		9
+#define MAC_LEN			32
 
 #define WORD_SIZE		4
 #define MAX_READ_SIZE		32 /* bytes */
@@ -135,6 +136,9 @@ int cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config);
 int cmd_get_lock_data(struct io_interface *ioif, uint8_t *lock_data);
 
 int cmd_lock_zone(struct io_interface *ioif, uint8_t zone, uint16_t *expected_crc);
+
+int cmd_get_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size);
 
 int cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
 		  uint8_t mode, uint8_t *out, size_t out_size);
