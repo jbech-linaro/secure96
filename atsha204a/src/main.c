@@ -119,6 +119,16 @@ int main(int argc, char *argv[])
 		CHECK_RES("nonce (long) response code", ret, buf, 1);
 	}
 
+	printf("\n - Gendig -\n");
+        /*
+	 * Use slot 3: This is very much configuration dependent,
+         * and it works with the default (factory) settings.
+         */
+	ret = cmd_gen_dig(ioif, NULL, 0, ZONE_DATA, 3);
+	if (ret != STATUS_OK) {
+		logd("Could not generate digest\n");
+	}
+
 #if 0
 	printf("\n - HMAC -\n");
 	/* 1 << 2 is to set the TempKey.SourceFlag, since we just above did a

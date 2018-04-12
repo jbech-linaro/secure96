@@ -156,6 +156,9 @@ int cmd_pause(struct io_interface *ioif, uint8_t selector);
 
 int cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value);
 
+int cmd_gen_dig(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		uint8_t zone, uint16_t slotnbr);
+
 int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	      uint8_t *data, size_t size);
 #endif

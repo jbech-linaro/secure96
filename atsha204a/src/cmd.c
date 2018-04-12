@@ -39,6 +39,7 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 
 	case OPCODE_GENDIG:
+		p->max_time = 43; /* Table 8.4 */
 		break;
 
 	case OPCODE_HMAC:
@@ -441,6 +442,22 @@ int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
 		*slot_config = 0;
 
 	return ret;
+}
+
+int cmd_gen_dig(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		uint8_t zone, uint16_t slotnbr)
+{
+	uint8_t resp;
+	struct cmd_packet p;
+
+	get_command(&p, OPCODE_GENDIG);
+	p.param1 = zone;
+	p.param2[0] = slotnbr & 0xff;
+	p.param2[1] = slotnbr >> 8;
+	p.data = in;
+	p.data_length = in_size;
+
+	return at204_msg(ioif, &p, &resp, sizeof(resp));
 }
 
 int cmd_pause(struct io_interface *ioif, uint8_t selector)
