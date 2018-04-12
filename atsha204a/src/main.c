@@ -127,6 +127,12 @@ int main(int argc, char *argv[])
 	CHECK_RES("hmac", ret, buf, HMAC_LEN);
 #endif
 
+	printf("\n - Pause -\n");
+	ret = cmd_pause(ioif, 0xf00);
+	if (ret != STATUS_OK) {
+		logd("Device paused\n");
+	}
+
 out:
 	ret = at204_close(ioif);
 	if (ret != STATUS_OK) {
