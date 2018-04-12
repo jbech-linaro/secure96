@@ -64,7 +64,11 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		p->param2[1] = 0x00;
 		p->max_time = 60; /* Table 8.4 */
 		break;
+
 	case OPCODE_PAUSE:
+		p->param2[0] = 0x00;
+		p->param2[1] = 0x00;
+		p->max_time = 2; /* Table 8.4 */
 		break;
 
 	case OPCODE_RANDOM:
@@ -414,6 +418,18 @@ int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
 		*slot_config = 0;
 
 	return ret;
+}
+
+int cmd_pause(struct io_interface *ioif, uint8_t selector)
+{
+	int ret = STATUS_EXEC_ERROR;
+	struct cmd_packet p;
+	uint8_t resp_buf;
+
+	get_command(&p, OPCODE_PAUSE);
+	p.param1 = selector;
+
+	return at204_msg(ioif, &p, &resp_buf, 1);
 }
 
 int cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value)
