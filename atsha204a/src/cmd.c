@@ -39,6 +39,7 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 
 	case OPCODE_GENDIG:
+		p->max_time = 43; /* Table 8.4 */
 		break;
 
 	case OPCODE_HMAC:
@@ -197,7 +198,7 @@ int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint8_t *hmac)
 int cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config)
 {
 	uint8_t _lock_config = 0;
-	int ret = STATUS_EXEC_ERROR; 
+	int ret = STATUS_EXEC_ERROR;
 
 	ret = cmd_read(ioif, ZONE_CONFIG, LOCK_CONFIG_ADDR, LOCK_CONFIG_OFFSET,
 		       WORD_SIZE, &_lock_config, LOCK_CONFIG_SIZE);
@@ -403,6 +404,23 @@ int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
 		*slot_config = 0;
 
 	return ret;
+}
+
+int cmd_gen_dig(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		uint8_t zone, uint16_t slotnbr)
+{
+	uint8_t resp;
+	int ret = STATUS_EXEC_ERROR;
+	struct cmd_packet p;
+
+	get_command(&p, OPCODE_GENDIG);
+	p.param1 = zone;
+	p.param2[0] = slotnbr & 0xff;
+	p.param2[1] = slotnbr >> 8;
+	p.data = in;
+	p.data_length = in_size;
+
+	return at204_msg(ioif, &p, &resp, sizeof(resp));
 }
 
 int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
