@@ -112,6 +112,9 @@ bool wake(struct io_interface *ioif);
 int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	     uint8_t offset, size_t size, void *data, size_t data_size);
 
+int cmd_derive_key(struct io_interface *ioif, uint8_t random, uint8_t slotnbr,
+		   uint8_t *buf, size_t size);
+
 int cmd_check_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
 		  uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size);
 
