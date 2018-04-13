@@ -234,6 +234,23 @@ int main(int argc, char *argv[])
 		CHECK_RES("sha compute", ret, buf, SHA_LEN);
 	}
 
+	printf("\n - Derive Key -\n");
+	{
+		uint8_t in_long[NONCE_LONG_NUMIN] = {
+			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+			0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
+			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+			0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF
+		};
+		ret = cmd_get_nonce(ioif, in_long, sizeof(in_long), NONCE_MODE_PASSTHROUGH, buf, 1);
+		CHECK_RES("nonce for derive key", ret, buf, 1);
+
+		ret = cmd_derive_key(ioif, 1 << 2, 4, NULL, 0);
+		if (ret != STATUS_OK) {
+			loge("Derive Key failed\n");
+		}
+	}
+
 	printf("\n - Pause -\n");
 	ret = cmd_pause(ioif, 0xf00);
 	if (ret != STATUS_OK) {

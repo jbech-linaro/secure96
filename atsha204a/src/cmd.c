@@ -27,7 +27,9 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 	switch (p->opcode)
 	{
 	case OPCODE_DERIVEKEY:
+		p->max_time = 62; /* Table 8.4 */
 		break;
+
 	case OPCODE_DEVREV:
 		p->count = 0;
 		p->param1 = 0;
@@ -161,6 +163,26 @@ int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 		loge("Failed to read from config zone!\n");
 
 	return ret;
+}
+
+int cmd_derive_key(struct io_interface *ioif, uint8_t random, uint8_t slotnbr,
+		   uint8_t *buf, size_t size)
+{
+	uint8_t resp;
+	int ret = STATUS_EXEC_ERROR;
+	struct cmd_packet p;
+
+	if (size && (size != MAC_LEN || !buf))
+		return STATUS_BAD_PARAMETERS;
+
+	get_command(&p, OPCODE_DERIVEKEY);
+	p.param1 = random;
+	p.param2[0] = slotnbr & 0xff;
+	p.param2[1] = slotnbr >> 8;
+	p.data = buf;
+	p.data_length = size;
+
+	return at204_msg(ioif, &p, &resp, sizeof(resp));
 }
 
 int cmd_check_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
