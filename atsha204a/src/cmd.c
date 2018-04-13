@@ -133,7 +133,7 @@ int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	if (zone == ZONE_OTP)
 		zone &= ~(1 << 7);
 	else if (data_size == 32)
-		zone &= (1 << 7);
+		zone |= (1 << 7);
 
 	p.param1 = zone;
 	p.param2[0] = addr;
