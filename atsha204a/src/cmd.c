@@ -91,6 +91,7 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 
 	case OPCODE_WRITE:
+		p->param2[1] = 0;
 		p->max_time = 20; /* Max is 42, lowered it to get better performance */
 		break;
 
@@ -406,23 +407,27 @@ int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
 }
 
 int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
-	       uint8_t *data, size_t size)
+	      bool encrypted, uint8_t *data, size_t size)
 {
+	uint8_t resp;
 	ssize_t n = 0;
 	struct cmd_packet p;
+
+	assert(zone < ZONE_END);
+	assert(size == 4 || size == 32);
+
+	if (encrypted)
+		zone |= (1 << 6);
+
+	if (size == 32)
+		zone |= (1 << 7);
 
 	get_command(&p, OPCODE_WRITE);
 	p.param1 = zone;
 	p.param2[0] = addr;
 	p.data = data;
 	p.data_length = size;
-	p.max_time = 20;
-#if 0
-	if (size != 0 && size != 4 && size != 32) {
-		loge("Wrong size when trying to write\n");
-		goto err;
-	}
-#endif
+
 err:
-	return at204_write2(ioif, &p);
+	return at204_msg(ioif, &p, &resp, 1);
 }

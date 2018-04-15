@@ -94,9 +94,8 @@ static int program_data_slots(struct io_interface *ioif, uint16_t *crc)
 		*crc = calculate_crc16(data, sizeof(data), *crc);
 
 		logd("Storing: %d bytes, 0x%02x...0x%02x (running CRC: 0x%04x)\n", sizeof(data), data[0], data[31], *crc);
-		//ret = cmd_write(ioif, ZONE_DATA, SLOT_ADDR(i), data, sizeof(data));
+		//ret = cmd_write(ioif, ZONE_DATA, SLOT_ADDR(i), false, data, sizeof(data));
 		ret = STATUS_OK;
-
 		if (ret != STATUS_OK) {
 			loge("Failed to program data slot: %d\n", i);
 			break;
@@ -128,9 +127,8 @@ static int program_otp_zone(struct io_interface *ioif, uint16_t *crc)
 		 */
 		*crc = calculate_crc16(data, sizeof(data), *crc);
 		logd("Storing: %d bytes, 0x%02x...0x%02x (running CRC: 0x%04x)\n", sizeof(data), data[0], data[3], *crc);
-		//  ret = cmd_write(ioif, ZONE_OTP, OTP_ADDR(i), data, sizeof(data));
+		//  ret = cmd_write(ioif, ZONE_OTP, OTP_ADDR(i), false, data, sizeof(data));
 		ret = STATUS_OK;
-
 		if (ret != STATUS_OK) {
 			loge("Failed to program OTP address: 0x%02x\n", OTP_ADDR(i));
 			break;
@@ -151,7 +149,7 @@ static int program_slot_configs(struct io_interface *ioif)
 		     2*i, slot_configs[i].value[0], slot_configs[i].value[1],
 		     (2*i)+1, slot_configs[i].value[2], slot_configs[i].value[3]);
 
-		ret = cmd_write(ioif, ZONE_CONFIG, slot_configs[i].address,
+		ret = cmd_write(ioif, ZONE_CONFIG, slot_configs[i].address, false,
 				slot_configs[i].value, sizeof(slot_configs[i].value));
 
 		if (ret != STATUS_OK) {

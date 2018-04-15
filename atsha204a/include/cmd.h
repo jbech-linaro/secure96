@@ -149,5 +149,5 @@ int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
 			uint16_t *buf);
 
 int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
-	      uint8_t *data, size_t size);
+	      bool encrypted, uint8_t *data, size_t size);
 #endif
