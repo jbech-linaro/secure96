@@ -33,8 +33,6 @@ uint16_t get_serialized_crc(void *p, size_t size)
  * Compute the CRC for a certain payload. This function takes a crc
  * (current_crc) as an argument. This is useful if you cannot compute the entire
  * CRC in one go.
- *
- * Implementation originates from the mysensors.org project.
  */
 uint16_t calculate_crc16(const uint8_t *data, size_t size, uint16_t current_crc)
 {
