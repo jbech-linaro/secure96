@@ -65,7 +65,11 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		p->param2[1] = 0x00;
 		p->max_time = 60; /* Table 8.4 */
 		break;
+
 	case OPCODE_PAUSE:
+		p->param2[0] = 0x00;
+		p->param2[1] = 0x00;
+		p->max_time = 2; /* Table 8.4 */
 		break;
 
 	case OPCODE_RANDOM:
@@ -89,6 +93,8 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 
 	case OPCODE_UPDATEEXTRA:
+		p->param2[1] = 0;
+		p->max_time = 8; /* Table 8.4 */
 		break;
 
 	case OPCODE_WRITE:
@@ -182,7 +188,7 @@ int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size)
 	return at204_msg(ioif, &p, buf, size);
 }
 
-int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint8_t *hmac)
+int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr, uint8_t *hmac)
 {
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
@@ -191,6 +197,15 @@ int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint8_t *hmac)
 		return STATUS_BAD_PARAMETERS;
 
 	get_command(&p, OPCODE_HMAC);
+
+	p.param1 = mode;
+	/* Only the 4 least significant bits are used when determining
+	 * the SlotID. Yet, when param2 is used in a SHA-256 operation,
+	 * the entire 16-bit value is used (see Section 13.3 in the
+	 * specification)
+	 */
+	p.param2[0] = slotnbr & 0xff;
+	p.param2[1] = slotnbr >> 8;
 
 	return at204_msg(ioif, &p, hmac, HMAC_LEN);
 }
@@ -426,6 +441,31 @@ int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
 		*slot_config = 0;
 
 	return ret;
+}
+
+int cmd_pause(struct io_interface *ioif, uint8_t selector)
+{
+	int ret = STATUS_EXEC_ERROR;
+	struct cmd_packet p;
+	uint8_t resp_buf;
+
+	get_command(&p, OPCODE_PAUSE);
+	p.param1 = selector;
+
+	return at204_msg(ioif, &p, &resp_buf, 1);
+}
+
+int cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value)
+{
+	uint8_t resp_buf;
+	struct cmd_packet p;
+	int ret = STATUS_EXEC_ERROR;
+
+	get_command(&p, OPCODE_UPDATEEXTRA);
+	p.param1 = mode;
+	p.param2[0] = value;
+
+	ret = at204_msg(ioif, &p, &resp_buf, sizeof(resp_buf));
 }
 
 int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,

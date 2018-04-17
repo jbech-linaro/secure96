@@ -129,7 +129,7 @@ int cmd_get_config_zone(struct io_interface *ioif, uint8_t *buf, size_t size);
 
 int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size);
 
-int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint8_t *hmac);
+int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr, uint8_t *hmac);
 
 int cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config);
 
@@ -151,6 +151,10 @@ int cmd_get_serialnbr(struct io_interface *ioif, uint8_t *buf, size_t size);
 
 int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
 			uint16_t *buf);
+
+int cmd_pause(struct io_interface *ioif, uint8_t selector);
+
+int cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value);
 
 int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	      uint8_t *data, size_t size);

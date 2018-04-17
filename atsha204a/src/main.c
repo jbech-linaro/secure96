@@ -43,7 +43,14 @@ int main(int argc, char *argv[])
 	printf("ATSHA204A is awake\n");
 
 #ifdef PERSONALIZE
+	printf("\n - Personalize -\n");
 	ret = atsha204a_personalize(ioif);
+	if (ret != STATUS_OK) {
+		printf("Failed to personalize the device\n");
+	}
+
+	printf("\n - Update Extra -\n");
+	ret = cmd_update_extra(ioif, 0, 0xff);
 	if (ret != STATUS_OK) {
 		printf("Failed to personalize the device\n");
 	}
@@ -116,7 +123,7 @@ int main(int argc, char *argv[])
 	printf("\n - HMAC -\n");
 	/* 1 << 2 is to set the TempKey.SourceFlag, since we just above did a
 	 * passthrough nonce and therefore we used no internal randomness. */
-	ret = cmd_get_hmac(ioif, 1 << 2, buf);
+	ret = cmd_get_hmac(ioif, 1 << 2, 0, buf);
 	CHECK_RES("hmac", ret, buf, HMAC_LEN);
 #endif
 
@@ -137,6 +144,11 @@ int main(int argc, char *argv[])
 		CHECK_RES("nonce for mac", ret, buf, 1);
 		ret = cmd_get_mac(ioif, mac_challenge, sizeof(mac_challenge), 0x06, 0, mac_buf, sizeof(mac_buf));
 		CHECK_RES("mac", ret, mac_buf, MAC_LEN);
+
+	printf("\n - Pause -\n");
+	ret = cmd_pause(ioif, 0xf00);
+	if (ret != STATUS_OK) {
+		logd("Device paused\n");
 	}
 
 out:
