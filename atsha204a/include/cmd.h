@@ -97,7 +97,7 @@ enum {
  * Base address for slot configuration starts at 0x5. Each word contains slot
  * configuration for two slots.
  */
-static uint8_t SLOT_CONFIG_ADDR(slotnbr)
+static uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr)
 {
 	uint8_t addr = 0x5;
 	if (slotnbr % 2)
@@ -152,12 +152,14 @@ int cmd_get_serialnbr(struct io_interface *ioif, uint8_t *buf, size_t size);
 int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
 			uint16_t *buf);
 
-int cmd_pause(struct io_interface *ioif, uint8_t selector);
+int cmd_pause(struct io_interface *ioif, uint16_t selector);
 
 int cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value);
 
 int cmd_gen_dig(struct io_interface *ioif, uint8_t *in, size_t in_size,
 		uint8_t zone, uint16_t slotnbr);
+
+bool cmd_wake(struct io_interface *ioif);
 
 int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	      uint8_t *data, size_t size);

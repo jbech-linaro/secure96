@@ -2,9 +2,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <io.h>
 #include <cmd.h>
+#include <crc.h>
 #include <debug.h>
+#include <io.h>
 #include <personalize.h>
 #include <status.h>
 

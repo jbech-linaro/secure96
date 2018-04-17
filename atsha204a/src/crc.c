@@ -1,8 +1,9 @@
+#include <string.h>
 #include <crc.h>
 #include <debug.h>
 #include <packet.h>
 
-/* 
+/*
  * Computes and check that the computed CRC is the same as the one provided as
  * an argument to the function.
  *

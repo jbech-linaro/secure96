@@ -2,6 +2,8 @@
 #include <fcntl.h>
 #include <i2c_linux.h>
 #include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 #include <debug.h>
 #include <device.h>
@@ -36,7 +38,7 @@ static size_t i2c_linux_write(void *ctx, const void *buf, size_t size)
 	return write(ictx->fd, buf, size);
 }
 
-static size_t i2c_linux_read(void *ctx, const void *buf, size_t size)
+static size_t i2c_linux_read(void *ctx, void *buf, size_t size)
 {
 	struct i2c_linux_ctx *ictx = ctx;
 

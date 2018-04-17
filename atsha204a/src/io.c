@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <crc.h>
 #include <debug.h>
