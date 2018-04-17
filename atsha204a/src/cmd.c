@@ -56,6 +56,7 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 
 	case OPCODE_MAC:
+		p->max_time = 35; /* Table 8.4 */
 		break;
 
 	case OPCODE_NONCE:
@@ -283,6 +284,28 @@ int cmd_lock_zone(struct io_interface *ioif, uint8_t zone, uint16_t *expected_cr
 	if (ret == STATUS_OK && resp_buf == LOCK_DATA_LOCKED)
 		logd("Successfully locked %s zone!\n", zone2str(zone));
 out:
+	return ret;
+}
+
+int cmd_get_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size)
+{
+	int ret = STATUS_EXEC_ERROR;
+	struct cmd_packet p;
+
+	get_command(&p, OPCODE_MAC);
+
+	p.param1 = mode;
+	p.param2[0] = slotnbr & 0xff;
+	p.param2[1] = slotnbr >> 8;
+	p.data = in;
+	p.data_length = in_size;
+
+	ret = at204_msg(ioif, &p, out, out_size);
+
+	if (ret != STATUS_OK)
+		memset(out, 0, out_size);
+
 	return ret;
 }
 
