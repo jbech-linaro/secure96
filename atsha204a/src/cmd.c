@@ -50,6 +50,8 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 
 	case OPCODE_CHECKMAC:
+		p->param2[1] = 0;
+		p->max_time = 38; /* Table 8.4 */
 		break;
 
 	case OPCODE_LOCK:
@@ -155,6 +157,20 @@ int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 		loge("Failed to read from config zone!\n");
 
 	return ret;
+}
+
+int cmd_check_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		  uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size)
+{
+	struct cmd_packet p;
+
+	get_command(&p, OPCODE_CHECKMAC);
+	p.param1 = mode;
+	p.param2[0] = slotnbr;
+	p.data = in;
+	p.data_length = in_size;
+
+	return at204_msg(ioif, &p, out, out_size);
 }
 
 int cmd_get_config_zone(struct io_interface *ioif, uint8_t *buf, size_t size)
