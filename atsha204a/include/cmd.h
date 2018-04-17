@@ -167,5 +167,5 @@ int cmd_gen_dig(struct io_interface *ioif, uint8_t *in, size_t in_size,
 bool cmd_wake(struct io_interface *ioif);
 
 int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
-	      uint8_t *data, size_t size);
+	      bool encrypted, uint8_t *data, size_t size);
 #endif

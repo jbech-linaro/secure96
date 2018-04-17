@@ -95,9 +95,7 @@ static int program_data_slots(struct io_interface *ioif, uint16_t *crc)
 		*crc = calculate_crc16(data, sizeof(data), *crc);
 
 		logd("Storing: %d bytes, 0x%02x...0x%02x (running CRC: 0x%04x)\n", sizeof(data), data[0], data[31], *crc);
-		//ret = cmd_write(ioif, ZONE_DATA, SLOT_ADDR(i), data, sizeof(data));
-		ret = STATUS_OK;
-
+		ret = cmd_write(ioif, ZONE_DATA, SLOT_ADDR(i), false, data, sizeof(data));
 		if (ret != STATUS_OK) {
 			loge("Failed to program data slot: %d\n", i);
 			break;
@@ -115,25 +113,31 @@ static int program_data_slots(struct io_interface *ioif, uint16_t *crc)
  */
 static int program_otp_zone(struct io_interface *ioif, uint16_t *crc)
 {
-	int i;
+	int i, j;
 	int ret = STATUS_EXEC_ERROR;
-	uint8_t data[4] = { 0 };
+	uint8_t data[32] = { 0 };
 
-	for (i = 0; i < 16; i++) {
+	/* Before Data/OTP zones are locked, only 32-byte values
+	 * can be written (section 8.5.18). We therefore need to
+	 * program the OTP in terms of blocks, which correspond
+	 * to address 0x00 and 0x10.
+	 */
+	for (i = 0; i < 2; i++) {
 		/* 00...00, 11...11, 22...22, ..., ff..ff */
-		memset(&data, i << 4 | i, sizeof(data));
+		for (j = 0; j < 8; j++) {
+			memset(data + j * 4, (i * 8 + j) << 4 |
+			       (i * 8 + j), 4);
+		}
 
 		/*
 		 * We must update CRC in each loop to be able to return the CRC
 		 * for the entire OTP area.
 		 */
 		*crc = calculate_crc16(data, sizeof(data), *crc);
-		logd("Storing: %d bytes, 0x%02x...0x%02x (running CRC: 0x%04x)\n", sizeof(data), data[0], data[3], *crc);
-		//  ret = cmd_write(ioif, ZONE_OTP, OTP_ADDR(i), data, sizeof(data));
-		ret = STATUS_OK;
-
+		logd("Storing: %d bytes, 0x%02x...0x%02x (running CRC: 0x%04x)\n", sizeof(data), data[0], data[31], *crc);
+		ret = cmd_write(ioif, ZONE_OTP, i * 0x10, false, data, sizeof(data));
 		if (ret != STATUS_OK) {
-			loge("Failed to program OTP address: 0x%02x\n", OTP_ADDR(i));
+			loge("Failed to program OTP address: 0x%02x\n", i * 0x10);
 			break;
 		}
 	}
@@ -152,7 +156,7 @@ static int program_slot_configs(struct io_interface *ioif)
 		     2*i, slot_configs[i].value[0], slot_configs[i].value[1],
 		     (2*i)+1, slot_configs[i].value[2], slot_configs[i].value[3]);
 
-		ret = cmd_write(ioif, ZONE_CONFIG, slot_configs[i].address,
+		ret = cmd_write(ioif, ZONE_CONFIG, slot_configs[i].address, false,
 				slot_configs[i].value, sizeof(slot_configs[i].value));
 
 		if (ret != STATUS_OK) {
@@ -179,8 +183,7 @@ static int lock_config_zone(struct io_interface *ioif)
 
 	crc = calculate_crc16(config_zone, sizeof(config_zone), crc);
 
-	/* FIXME: Use CRC here when locking */
-	ret = cmd_lock_zone(ioif, ZONE_CONFIG, NULL);
+	ret = cmd_lock_zone(ioif, ZONE_CONFIG, &crc);
 out:
 	return ret;
 }
@@ -201,6 +204,7 @@ int atsha204a_personalize(struct io_interface *ioif)
 		if (ret != STATUS_OK)
 			goto out;
 	}
+
 	if (is_data_zone_locked(ioif)) {
 		logd("Device data already locked\n");
 	} else {
@@ -210,14 +214,13 @@ int atsha204a_personalize(struct io_interface *ioif)
 		if (ret != STATUS_OK)
 			goto out;
 
-		logd("Intermedia CRC: 0x%04x\n", crc);
+		logd("Intermediate CRC: 0x%04x\n", crc);
 		ret = program_otp_zone(ioif, &crc);
 		if (ret != STATUS_OK)
 			goto out;
 
 		logd("Final CRC: 0x%04x\n", crc);
-		/* FIXME: User CRC value to ensure data is correct. */
-		ret = cmd_lock_zone(ioif, ZONE_DATA, NULL);
+		ret = cmd_lock_zone(ioif, ZONE_DATA, &crc);
 	}
 out:
 	return ret;
