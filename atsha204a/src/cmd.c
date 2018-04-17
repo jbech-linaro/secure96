@@ -422,7 +422,6 @@ int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
 
 int cmd_pause(struct io_interface *ioif, uint8_t selector)
 {
-	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
 	uint8_t resp_buf;
 
@@ -436,13 +435,12 @@ int cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value)
 {
 	uint8_t resp_buf;
 	struct cmd_packet p;
-	int ret = STATUS_EXEC_ERROR;
 
 	get_command(&p, OPCODE_UPDATEEXTRA);
 	p.param1 = mode;
 	p.param2[0] = value;
 
-	ret = at204_msg(ioif, &p, &resp_buf, sizeof(resp_buf));
+	return at204_msg(ioif, &p, &resp_buf, sizeof(resp_buf));
 }
 
 int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
