@@ -6,6 +6,8 @@ cmake_minimum_required(VERSION 3.0.2)
 
 set(PROJECT_VERSION "0.1.0")
 
+MESSAGE(STATUS "CMAKE_C_COMPILER: " ${CMAKE_C_COMPILER})
+
 add_compile_options(-Wall -Werror)
 include_directories(include)
 

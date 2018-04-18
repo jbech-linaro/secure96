@@ -16,5 +16,5 @@ before_install:
 script:
   - cd atsha204a
   - mkdir -p build && cd build
-  - cmake CMAKE_C_COMPILER=arm-linux-gnueabihf-gcc ..
+  - cmake -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc ..
   - make
