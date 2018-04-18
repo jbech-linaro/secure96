@@ -94,7 +94,7 @@ static int program_data_slots(struct io_interface *ioif, uint16_t *crc)
 		 */
 		*crc = calculate_crc16(data, sizeof(data), *crc);
 
-		logd("Storing: %d bytes, 0x%02x...0x%02x (running CRC: 0x%04x)\n", sizeof(data), data[0], data[31], *crc);
+		logd("Storing: %lu bytes, 0x%02x...0x%02x (running CRC: 0x%04x)\n", sizeof(data), data[0], data[31], *crc);
 		ret = cmd_write(ioif, ZONE_DATA, SLOT_ADDR(i), false, data, sizeof(data));
 		if (ret != STATUS_OK) {
 			loge("Failed to program data slot: %d\n", i);
@@ -135,7 +135,7 @@ static int program_otp_zone(struct io_interface *ioif, uint16_t *crc)
 		 * for the entire OTP area.
 		 */
 		*crc = calculate_crc16(data, sizeof(data), *crc);
-		logd("Storing: %d bytes, 0x%02x...0x%02x (running CRC: 0x%04x)\n", sizeof(data), data[0], data[31], *crc);
+		logd("Storing: %lu bytes, 0x%02x...0x%02x (running CRC: 0x%04x)\n", sizeof(data), data[0], data[31], *crc);
 		ret = cmd_write(ioif, ZONE_OTP, i * 0x10, false, data, sizeof(data));
 		if (ret != STATUS_OK) {
 			loge("Failed to program OTP address: 0x%02x\n", i * 0x10);
@@ -171,7 +171,6 @@ static int program_slot_configs(struct io_interface *ioif)
 
 static int lock_config_zone(struct io_interface *ioif)
 {
-	int i;
 	uint16_t crc = 0;
 	uint8_t config_zone[ZONE_CONFIG_SIZE] = { 0 };
 	int ret = STATUS_EXEC_ERROR;
@@ -191,7 +190,6 @@ out:
 
 int atsha204a_personalize(struct io_interface *ioif)
 {
-	int i;
 	int ret = STATUS_OK;
 
 	if (is_configuration_locked(ioif)) {

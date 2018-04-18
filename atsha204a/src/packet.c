@@ -45,7 +45,7 @@ uint8_t *serialize(struct cmd_packet *p)
 
 	p->count = get_count_size(p);
 	pl_size = get_payload_size(p);
-	logd("pkt_size: %d, count: %d, payload_size: %d\n", pkt_size, p->count, pl_size);
+	logd("pkt_size: %lu, count: %d, payload_size: %lu\n", pkt_size, p->count, pl_size);
 
 	pkt = calloc(pkt_size, sizeof(uint8_t));
 	if (!pkt)
