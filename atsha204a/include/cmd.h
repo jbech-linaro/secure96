@@ -99,24 +99,9 @@ enum {
  * Base address for slot configuration starts at 0x5. Each word contains slot
  * configuration for two slots.
  */
-static uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr)
-{
-	uint8_t addr = 0x5;
-	if (slotnbr % 2)
-		slotnbr--;
-	slotnbr >>= 1;
-	return addr + slotnbr;
-}
+uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr);
 
 #define SLOT_ADDR(id) (8 * id)
-
-#if FIXME
-/* Can one use a macro like this instead of the function above? */
-#define SLOT_CONFIG_ADDR(slotnbr) (slotnbr % 2 ? \
-	0x5 + (--slotnbr >> 1) : \
-	0x5 + (slotnbr >> 1))
-#endif
-
 #define SLOT_CONFIG_OFFSET(slotnbr) (slotnbr % 2 ? 2 : 0)
 #define SLOT_CONFIG_SIZE 0x2
 

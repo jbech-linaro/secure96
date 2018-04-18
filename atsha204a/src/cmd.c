@@ -10,6 +10,15 @@
 #include <packet.h>
 #include <status.h>
 
+uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr)
+{
+	uint8_t addr = 0x5;
+	if (slotnbr % 2)
+		slotnbr--;
+	slotnbr >>= 1;
+	return addr + slotnbr;
+}
+
 /*
  * This serializes a command packet. It will also calculate and store the
  * checksum for the package.
