@@ -120,8 +120,8 @@ static int program_otp_zone(struct io_interface *ioif, uint16_t *crc)
 	/*
 	 * Before Data/OTP zones are locked, only 32-byte values
 	 * can be written (section 8.5.18). We therefore need to
-	 * program the OTP in terms of blocks, which correspond
-	 * to address 0x00 and 0x10.
+	 * program the OTP in terms of blocks, starting from
+	 * words 0x00 and 0x08.
 	 */
 	for (i = 0; i < 2; i++) {
 		/* 00...00, 11...11, 22...22, ..., ff..ff */
@@ -135,8 +135,9 @@ static int program_otp_zone(struct io_interface *ioif, uint16_t *crc)
 		 * for the entire OTP area.
 		 */
 		*crc = calculate_crc16(data, sizeof(data), *crc);
+
 		logd("Storing: %u bytes, 0x%02x...0x%02x (running CRC: 0x%04x)\n", sizeof(data), data[0], data[31], *crc);
-		ret = cmd_write(ioif, ZONE_OTP, i * 0x10, false, data, sizeof(data));
+		ret = cmd_write(ioif, ZONE_OTP, i * 0x08, false, data, sizeof(data));
 		if (ret != STATUS_OK) {
 			loge("Failed to program OTP address: 0x%02x\n", i * 0x10);
 			break;
