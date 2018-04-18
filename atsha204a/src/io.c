@@ -63,7 +63,7 @@ int at204_read(struct io_interface *ioif, void *buf, size_t size)
 	 * We expect something to be read and if read, we expect either the size
 	 * 4 or the full response length as calculated above.
 	 */
-	if (n <= 0 || resp_buf[0] > n || resp_buf[0] != 4 && resp_buf[0] != resp_size)
+	if (n <= 0 || resp_buf[0] > n || (resp_buf[0] != 4 && resp_buf[0] != resp_size))
 		goto out;
 
 #if DEBUG
@@ -100,7 +100,7 @@ int at204_close(struct io_interface *ioif)
 int at204_write2(struct io_interface *ioif, struct cmd_packet *p)
 {
 	uint8_t *serialized_pkt = NULL;
-	ssize_t n = 0;
+	int n = 0;
 
 	serialized_pkt = serialize(p);
 	if (!serialized_pkt)

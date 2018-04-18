@@ -207,7 +207,6 @@ int cmd_get_config_zone(struct io_interface *ioif, uint8_t *buf, size_t size)
 
 int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size)
 {
-	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
 
 	if (size != DEVREV_LEN || !buf)
@@ -220,7 +219,6 @@ int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size)
 
 int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr, uint8_t *hmac)
 {
-	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
 
 	if (!hmac)
@@ -405,7 +403,6 @@ int cmd_get_otp_mode(struct io_interface *ioif, uint8_t *otp_mode)
 
 int cmd_get_random(struct io_interface *ioif, uint8_t *buf, size_t size)
 {
-	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
 
 	/*
@@ -532,7 +529,6 @@ int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	      bool encrypted, uint8_t *data, size_t size)
 {
 	uint8_t resp;
-	ssize_t n = 0;
 	struct cmd_packet p;
 
 	assert(zone < ZONE_END);
@@ -550,6 +546,5 @@ int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	p.data = data;
 	p.data_length = size;
 
-err:
 	return at204_msg(ioif, &p, &resp, 1);
 }

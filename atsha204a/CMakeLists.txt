@@ -30,6 +30,7 @@ add_definitions(-DDEBUG)
 #add_definitions(-DPERSONALIZE)
 #add_definitions(-DEXT_DEBUG_INFO)
 add_definitions(-DCMAKE_BUILD_TYPE=Debug)
+add_compile_options(-Wall)
 
 add_executable(s96-204 ${SECURE96-SRC})
 target_link_libraries(s96-204)
