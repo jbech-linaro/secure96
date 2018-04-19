@@ -1,3 +1,7 @@
+/*
+ * Copyright 2017, Linaro Ltd and contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 #ifndef __STATUS_H
 #define __STATUS_H
 

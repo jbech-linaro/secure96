@@ -1,3 +1,7 @@
+/*
+ * Copyright 2017, Linaro Ltd and contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 #include <stdlib.h>
 #include <string.h>
 
