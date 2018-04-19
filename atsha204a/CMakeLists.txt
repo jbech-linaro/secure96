@@ -12,6 +12,7 @@ add_compile_options(-Wall -Werror)
 include_directories(include)
 
 set(SRC src/cmd.c
+	src/config.c
 	src/crc.c
 	src/debug.c
 	src/io.c

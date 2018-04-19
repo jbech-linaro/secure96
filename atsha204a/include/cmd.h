@@ -21,6 +21,10 @@ enum {
 #define ZONE_OTP_SIZE 		64
 #define ZONE_DATA_SIZE		512
 
+#define ZONE_CONFIG_NUM_SLOTS	16
+#define ZONE_DATA_NUM_SLOTS	16
+#define ZONE_OTP_NUM_SLOTS	16
+
 #define LOCK_CONFIG_LOCKED	0x0
 #define LOCK_CONFIG_UNLOCKED	0x55
 #define LOCK_DATA_LOCKED	0x0
@@ -109,7 +113,11 @@ uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr);
 #define SLOT_CONFIG_OFFSET(slotnbr) (slotnbr % 2 ? 2 : 0)
 #define SLOT_CONFIG_SIZE 0x2
 
+#define SLOT_DATA_SIZE		32
+
 #define OTP_ADDR(addr) (4 * addr)
+#define SLOT_OTP_SIZE		4
+#define SLOT_OTP_PROG_SIZE	32
 
 bool wake(struct io_interface *ioif);
 

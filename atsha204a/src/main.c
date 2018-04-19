@@ -9,6 +9,7 @@
 #include <debug.h>
 #include <device.h>
 #include <io.h>
+#include <personalize.h>
 #include <status.h>
 
 #define CHECK_RES(str, ret, buf, size) \
