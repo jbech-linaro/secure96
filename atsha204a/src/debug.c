@@ -11,6 +11,7 @@
 
 void hexdump(char *message, void *buf, size_t len)
 {
+#ifdef DEBUG
 	int i;
 	uint8_t *b = (uint8_t *)buf;
 
@@ -22,6 +23,7 @@ void hexdump(char *message, void *buf, size_t len)
 	for (i = 0; i < len; i++)
 		logd("0x%02x ", b[i]);
 	logd("%s", "\n");
+#endif
 }
 
 char *resp2str(uint8_t response_code)
@@ -54,5 +56,19 @@ char *zone2str(uint8_t zone)
 		return "Data/OTP";
 	default:
 		return "Unknown error code";
+	}
+}
+
+char *otpmode2str(uint8_t otp_mode)
+{
+	switch(otp_mode) {
+	case OTP_MODE_READ_ONLY:
+		return "Read-Only";
+	case OTP_MODE_CONSUMPTION:
+		return "Consumption";
+	case OTP_MODE_LEGACY:
+		return "Legacy";
+	default:
+		return "Unknown mode";
 	}
 }

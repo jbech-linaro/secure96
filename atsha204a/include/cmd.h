@@ -30,6 +30,10 @@ enum {
 #define LOCK_DATA_LOCKED	0x0
 #define LOCK_DATA_UNLOCKED	0x55
 
+#define OTP_MODE_READ_ONLY	0xaa
+#define OTP_MODE_CONSUMPTION	0x55
+#define OTP_MODE_LEGACY		0x00
+
 /* Sizes for out parameter (RandOut) */
 #define NONCE_SHORT_LEN		1
 #define NONCE_LONG_LEN		32
@@ -130,15 +134,9 @@ int cmd_derive_key(struct io_interface *ioif, uint8_t random, uint8_t slotnbr,
 int cmd_check_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
 		  uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size);
 
-int cmd_get_config_zone(struct io_interface *ioif, uint8_t *buf, size_t size);
-
 int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size);
 
 int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr, uint8_t *hmac);
-
-int cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config);
-
-int cmd_get_lock_data(struct io_interface *ioif, uint8_t *lock_data);
 
 int cmd_lock_zone(struct io_interface *ioif, uint8_t zone, uint16_t *expected_crc);
 
@@ -148,14 +146,7 @@ int cmd_get_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
 int cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
 		  uint8_t mode, uint8_t *out, size_t out_size);
 
-int cmd_get_otp_mode(struct io_interface *ioif, uint8_t *otp_mode);
-
 int cmd_get_random(struct io_interface *ioif, uint8_t *buf, size_t size);
-
-int cmd_get_serialnbr(struct io_interface *ioif, uint8_t *buf, size_t size);
-
-int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
-			uint16_t *buf);
 
 int cmd_pause(struct io_interface *ioif, uint16_t selector);
 

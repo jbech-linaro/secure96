@@ -38,5 +38,6 @@
 void hexdump(char *message, void *buf, size_t len);
 char *resp2str(uint8_t response_code);
 char *zone2str(uint8_t zone);
+char *otpmode2str(uint8_t otp_mode);
 
 #endif
