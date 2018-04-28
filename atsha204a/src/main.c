@@ -2,264 +2,464 @@
  * Copyright 2017, Linaro Ltd and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+#include <getopt.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <cmd.h>
+#include <crc.h>
 #include <debug.h>
 #include <device.h>
 #include <io.h>
+#include <personalize.h>
 #include <status.h>
 
-#define CHECK_RES(str, ret, buf, size) \
-	if (ret == STATUS_OK) \
-		hexdump(str, buf, size); \
-	else { \
-		loge("Failed to get %s!\n", str); \
+extern struct slot_config slot_configs[8];
+extern uint8_t zone_data[ZONE_DATA_SIZE];
+extern uint8_t zone_otp[ZONE_OTP_SIZE];
+
+void usage(char *fname)
+{
+	fprintf(stderr, "Usage: %s <option>\n", fname);
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Available options:\n");
+	fprintf(stderr, "  -i, --info		Display device info\n");
+	fprintf(stderr, "  -d, --dump-config	Dump config zone\n");
+	fprintf(stderr, "  -p, --personalize	Write config and data\n");
+	fprintf(stderr, "  -h, --help		Display this message\n");
+	fprintf(stderr, "  -v, --version	Display version\n");
+	fprintf(stderr, "\n");
+}
+
+int confirm()
+{
+	char resp[4];
+	int confirm = 1;
+
+	do {
+		printf("Continue? [yN] ");
+		fgets(resp, sizeof(resp), stdin);
+		if (resp[0] == 'y' || resp[0] == 'Y') { /* yolo works here too */
+			confirm = 0;
+			break;
+		} else if (resp[0] == 'n' || resp[0] == 'N' || resp[0] == '\n') {
+			confirm = 1;
+			break;
+		}
+		printf("Invalid option. ");
+	} while(1);
+
+	return confirm;
+}
+
+static int get_config_zone(struct io_interface *ioif, uint8_t *buf, size_t size)
+{
+	int i;
+	int ret = STATUS_EXEC_ERROR;
+
+	if (size != ZONE_CONFIG_SIZE || !buf)
+		return STATUS_BAD_PARAMETERS;
+
+	/* Read word by word into the buffer */
+	for (i = 0; i < ZONE_CONFIG_SIZE / WORD_SIZE; i++) {
+		ret = cmd_read(ioif, ZONE_CONFIG, i, 0, WORD_SIZE,
+			       buf + (i * WORD_SIZE), WORD_SIZE);
+		if (ret != STATUS_OK)
+			break;
 	}
 
-static struct io_interface *ioif;
+	return ret;
+}
+
+static int get_serialnbr(struct io_interface *ioif, uint8_t *buf, size_t size)
+{
+	/* Only 9 are used, but we read 4 bytes at a time */
+	uint8_t serial_nbr[12] = { 0 };
+	int ret = STATUS_EXEC_ERROR;
+
+	if (size != SERIALNUM_LEN || !buf)
+		return STATUS_BAD_PARAMETERS;
+
+	ret = cmd_read(ioif, ZONE_CONFIG, SERIALNBR_ADDR0_3,
+		       SERIALNBR_OFFSET0_3, WORD_SIZE, serial_nbr,
+		       SERIALNBR_SIZE0_3);
+	if (ret != STATUS_OK)
+		goto err;
+
+	ret = cmd_read(ioif, ZONE_CONFIG, SERIALNBR_ADDR4_7,
+		       SERIALNBR_OFFSET4_7, WORD_SIZE, serial_nbr +
+		       SERIALNBR_SIZE0_3, SERIALNBR_SIZE4_7);
+	if (ret != STATUS_OK)
+		goto err;
+
+	ret = cmd_read(ioif, ZONE_CONFIG, SERIALNBR_ADDR8, SERIALNBR_OFFSET8,
+		       WORD_SIZE, serial_nbr + SERIALNBR_SIZE0_3 + SERIALNBR_SIZE4_7,
+		       SERIALNBR_SIZE8);
+err:
+	if (ret == STATUS_OK)
+		memcpy(buf, serial_nbr, size);
+	else
+		memset(buf, 0, size);
+
+	return ret;
+}
+
+static int get_otp_mode(struct io_interface *ioif, uint8_t *otp_mode)
+{
+	uint32_t _otp_mode = 0;
+	int ret = STATUS_EXEC_ERROR;
+
+	if (!otp_mode)
+		return ret;
+
+	ret = cmd_read(ioif, ZONE_CONFIG, OTP_CONFIG_ADDR, OTP_CONFIG_OFFSET,
+		       WORD_SIZE, &_otp_mode, OTP_CONFIG_SIZE);
+
+	*otp_mode = _otp_mode & 0xFF;
+
+	return ret;
+}
+
+static int get_lock_config(struct io_interface *ioif, uint8_t *lock_config)
+{
+	uint8_t _lock_config = 0;
+	int ret = STATUS_EXEC_ERROR;
+
+	ret = cmd_read(ioif, ZONE_CONFIG, LOCK_CONFIG_ADDR, LOCK_CONFIG_OFFSET,
+		       WORD_SIZE, &_lock_config, LOCK_CONFIG_SIZE);
+
+	if (ret == STATUS_OK)
+		*lock_config = _lock_config;
+	else
+		*lock_config = 0;
+
+	return ret;
+}
+
+int get_lock_data(struct io_interface *ioif, uint8_t *lock_data)
+{
+	uint8_t _lock_data = 0;
+	int ret = STATUS_EXEC_ERROR;
+
+	ret = cmd_read(ioif, ZONE_CONFIG, LOCK_DATA_ADDR, LOCK_DATA_OFFSET,
+		       WORD_SIZE, &_lock_data, LOCK_DATA_SIZE);
+
+	if (ret == STATUS_OK)
+		*lock_data = _lock_data;
+	else
+		*lock_data = 0;
+
+	return ret;
+}
+
+bool is_configuration_locked(struct io_interface *ioif)
+{
+	uint8_t lock_config;
+	int ret = get_lock_config(ioif, &lock_config);
+	if (ret != STATUS_OK) {
+		loge("Couldn't get lock config\n");
+		return false;
+	}
+
+	return lock_config == LOCK_CONFIG_LOCKED;
+}
+
+bool is_data_zone_locked(struct io_interface *ioif)
+{
+	uint8_t lock_data;
+	int ret = get_lock_data(ioif, &lock_data);
+	if (ret != STATUS_OK) {
+		loge("Couldn't get lock data\n");
+		return false;
+	}
+
+	return lock_data == LOCK_DATA_LOCKED;
+}
+
+int program_data_slots(struct io_interface *ioif, uint16_t *crc)
+{
+	int i;
+	int ret = STATUS_EXEC_ERROR;
+
+	for (i = 0; i < ZONE_DATA_NUM_SLOTS; i++) {
+		/*
+		 * We must update CRC in each loop to be able to return the CRC
+		 * for the entire data area.
+		 */
+		*crc = calculate_crc16(zone_data + i * SLOT_DATA_SIZE,
+				       SLOT_DATA_SIZE, *crc);
+
+		logd("Storing: %d bytes, 0x%02x...0x%02x (running CRC: 0x%04x)\n",
+		     SLOT_DATA_SIZE, zone_data[i * SLOT_DATA_SIZE],
+		     zone_data[i * SLOT_DATA_SIZE + SLOT_DATA_SIZE - 1], *crc);
+
+		ret = cmd_write(ioif, ZONE_DATA, SLOT_ADDR(i), false,
+				zone_data + i * SLOT_DATA_SIZE, SLOT_DATA_SIZE);
+		if (ret != STATUS_OK) {
+			loge("Failed to program data slot: %d\n", i);
+			break;
+		}
+	}
+
+	return ret;
+}
+
+int program_otp_zone(struct io_interface *ioif, uint16_t *crc)
+{
+	int i;
+	int ret = STATUS_EXEC_ERROR;
+
+	/*
+	 * Before Data/OTP zones are locked, only 32-byte values
+	 * can be written (section 8.5.18). We therefore need to
+	 * program the OTP in terms of blocks, which correspond
+	 * to words 0x00 and 0x08.
+	 */
+	for (i = 0; i < 2; i++) {
+		/*
+		 * We must update CRC in each loop to be able to return the CRC
+		 * for the entire OTP area.
+		 */
+		*crc = calculate_crc16(zone_otp + i * SLOT_OTP_PROG_SIZE, SLOT_OTP_PROG_SIZE, *crc);
+
+		logd("Storing: %d bytes, 0x%02x...0x%02x (running CRC: 0x%04x)\n",
+		     SLOT_OTP_PROG_SIZE, zone_otp[i * SLOT_OTP_PROG_SIZE],
+		     zone_otp[i * SLOT_OTP_PROG_SIZE + SLOT_OTP_PROG_SIZE - 1], *crc);
+
+		ret = cmd_write(ioif, ZONE_OTP, i * 0x08, false,
+				zone_otp + i * SLOT_OTP_PROG_SIZE, SLOT_OTP_PROG_SIZE);
+		if (ret != STATUS_OK) {
+			loge("Failed to program OTP address: 0x%02x\n", i * 0x10);
+			break;
+		}
+	}
+
+	return ret;
+}
+
+int program_slot_configs(struct io_interface *ioif)
+{
+	int i;
+	int ret = STATUS_EXEC_ERROR;
+
+	for (i = 0; i < sizeof(slot_configs) / sizeof(struct slot_config); i++) {
+		logd("addr: 0x%02x, config[%02d]: 0x%02x 0x%02x, config[%02d]: 0x%02x 0x%02x\n",
+		     slot_configs[i].address,
+		     2*i, slot_configs[i].value[0], slot_configs[i].value[1],
+		     (2*i)+1, slot_configs[i].value[2], slot_configs[i].value[3]);
+
+		ret = cmd_write(ioif, ZONE_CONFIG, slot_configs[i].address, false,
+				slot_configs[i].value, sizeof(slot_configs[i].value));
+
+		if (ret != STATUS_OK) {
+			loge("Failed to program slot config: %d/%d\n", 2*i, (2*i) + 1);
+			break;
+		}
+	}
+
+	return ret;
+}
+
+int lock_config_zone(struct io_interface *ioif)
+{
+	uint16_t crc = 0;
+	uint8_t config_zone[ZONE_CONFIG_SIZE] = { 0 };
+	int ret = STATUS_EXEC_ERROR;
+
+	ret = get_config_zone(ioif, config_zone, sizeof(config_zone));
+	if (ret != STATUS_OK)
+		goto out;
+
+	hexdump("config_zone", config_zone, ZONE_CONFIG_SIZE);
+
+	crc = calculate_crc16(config_zone, sizeof(config_zone), crc);
+
+	ret = cmd_lock_zone(ioif, ZONE_CONFIG, &crc);
+out:
+	return ret;
+}
+
+static int atsha204a_personalize(struct io_interface *ioif)
+{
+	uint8_t ret = STATUS_EXEC_ERROR;
+
+	if (is_configuration_locked(ioif)) {
+		loge("Device config already locked\n");
+		goto out;
+	} else {
+		ret = program_slot_configs(ioif);
+		if (ret != STATUS_OK) {
+			loge("Could not program config\n");
+			goto out;
+		}
+
+		ret = lock_config_zone(ioif);
+		if (ret != STATUS_OK) {
+			loge("Could not lock config\n");
+			goto out;
+		}
+	}
+
+	if (is_data_zone_locked(ioif)) {
+		loge("Device data already locked\n");
+		goto out;
+	} else {
+		uint16_t crc = 0;
+
+		ret = program_data_slots(ioif, &crc);
+		if (ret != STATUS_OK) {
+			loge("Could not program data\n");
+			goto out;
+		}
+
+		logd("Intermediate CRC: 0x%04x\n", crc);
+		ret = program_otp_zone(ioif, &crc);
+		if (ret != STATUS_OK) {
+			goto out;
+			loge("Could not program OTP\n");
+		}
+
+		logd("Final CRC: 0x%04x\n", crc);
+		ret = cmd_lock_zone(ioif, ZONE_DATA, &crc);
+		if (ret != STATUS_OK) {
+			loge("Could not lock data");
+			goto out;
+		}
+	}
+out:
+	return ret;
+}
 
 int main(int argc, char *argv[])
 {
+	int i;
 	int ret = STATUS_EXEC_ERROR;
-	uint8_t buf[32] = { 0 };
+	struct io_interface *ioif;
 
-	printf("ATSHA204A on %s @ addr 0x%x\n", I2C_DEVICE, ATSHA204A_ADDR);
+	uint8_t otp_mode;
+	uint8_t lock_config;
+	uint8_t lock_data;
+	uint8_t devrev[DEVREV_LEN];
+	uint8_t sn[SERIALNUM_LEN];
+	uint8_t config_zone[ZONE_CONFIG_SIZE] = {0};
+
+	int opt;
+	int opt_idx = 0;
+	static struct option long_opts[] = {
+		{"dump-config",  no_argument, 0, 'd'},
+		{"personalize",  no_argument, 0, 'p'},
+		{"help",         no_argument, 0, 'h'},
+		{"info",         no_argument, 0, 'i'},
+		{"version",      no_argument, 0, 'v'},
+		{0, 0, 0, 0}
+	};
 
 	ret = register_io_interface(IO_I2C_LINUX, &ioif);
 	if (ret != STATUS_OK) {
-	    logd("Couldn't register the IO interface\n");
+	    fprintf(stderr, "Couldn't register the IO interface\n");
 	    goto out;
 	}
 
 	ret = at204_open(ioif);
 
-	printf("\n - Wake -\n");
-	while (!cmd_wake(ioif)) {};
-	printf("ATSHA204A is awake\n");
-
-#ifdef PERSONALIZE
-	printf("\n - Personalize -\n");
-	ret = atsha204a_personalize(ioif);
-	if (ret != STATUS_OK) {
-		printf("Failed to personalize the device\n");
+	if (argc == 1) {
+		usage(argv[0]);
+		return -1;
 	}
 
-	printf("\n - Update Extra -\n");
-	ret = cmd_update_extra(ioif, 0, 0xff);
-	if (ret != STATUS_OK) {
-		printf("Failed to personalize the device\n");
-	}
+	while (1) {
 
-	goto out;
-#endif
+		opt_idx = 0;
+		opt = getopt_long(argc, argv, "idphv", long_opts, &opt_idx);
 
-	printf("\n - Random -\n");
-	ret = cmd_get_random(ioif, buf, RANDOM_LEN);
-	CHECK_RES("random", ret, buf, RANDOM_LEN);
+		if (opt == -1) /* End of options. */
+			break;
 
-	printf("\n - Devrev -\n");
-	ret = cmd_get_devrev(ioif, buf, DEVREV_LEN);
-	CHECK_RES("devrev", ret, buf, DEVREV_LEN);
+		switch (opt) {
+		case 'i':
 
-	printf("\n - Serial number  -\n");
-	ret = cmd_get_serialnbr(ioif, buf, SERIALNUM_LEN);
-	CHECK_RES("serial number", ret, buf, SERIALNUM_LEN);
+			while (!cmd_wake(ioif)) {};
 
-	printf("\n - OTP mode -\n");
-	ret = cmd_get_otp_mode(ioif, buf);
-	CHECK_RES("otp mode", ret, buf, OTP_CONFIG_SIZE);
+			ret = cmd_get_devrev(ioif, devrev, sizeof(devrev));
+			if (ret != STATUS_OK) {
+				fprintf(stderr, "Failed to get DevRev\n");
+				goto out;
+			}
+			ret = get_serialnbr(ioif, sn, sizeof(sn));
+			if (ret != STATUS_OK) {
+				fprintf(stderr, "Failed to get SN\n");
+				goto out;
+			}
+			ret = get_otp_mode(ioif, &otp_mode);
+			if (ret != STATUS_OK) {
+				fprintf(stderr, "Failed to get OTP mode\n");
+				goto out;
+			}
+			ret = get_lock_config(ioif, &lock_config);
+			if (ret != STATUS_OK) {
+				fprintf(stderr, "Failed to get LockConfig\n");
+				goto out;
+			}
+			ret = get_lock_data(ioif, &lock_data);
+			if (ret != STATUS_OK) {
+				fprintf(stderr, "Failed to get LockData\n");
+				goto out;
+			}
 
-	{
-		int i;
-		printf("\n - Slotconfig  -\n");
-		for (i = 0; i < 16; i++) {
-			printf("\n");
-			ret = cmd_get_slot_config(ioif, i, (uint16_t*)buf);
-			CHECK_RES("slotconfig", ret, buf, SLOT_CONFIG_SIZE);
+			printf("ATSHA204A on %s @ addr 0x%x\n", I2C_DEVICE, ATSHA204A_ADDR);
+			printf("Device Revision:    %02x%02x%02x%02x\n",
+				devrev[0], devrev[1], devrev[2], devrev[3]);
+			printf("Serial Number:      %02x%02x%02x%02x%02x%02x%02x%02x%02x\n",
+				sn[0], sn[1], sn[2], sn[3], sn[4], sn[5], sn[6], sn[7], sn[8]);
+			printf("Config Zone locked: %s\n",
+				lock_config == LOCK_CONFIG_UNLOCKED ? "No" : "Yes");
+			printf("Data Zone locked:   %s\n",
+				lock_data == LOCK_DATA_UNLOCKED ? "No" : "Yes");
+			printf("OTP mode:           %s\n", otpmode2str(otp_mode));
+			break;
+		case 'd':
+
+			while (!cmd_wake(ioif)) {};
+
+			ret = get_config_zone(ioif, config_zone, sizeof(config_zone));
+			if (ret != STATUS_OK) {
+				fprintf(stderr, "Could not read config\n");
+				goto out;
+			}
+			for (i = 0; i < sizeof(config_zone); i ++) {
+				printf("%c", config_zone[i]);
+			}
+			break;
+		case 'p':
+			printf("WARNING: Personalizing the device is an one-time operation! ");
+			if (confirm())
+				goto out;
+
+			while (!cmd_wake(ioif)) {};
+
+			ret = atsha204a_personalize(ioif);
+			if (ret != STATUS_OK) {
+				fprintf(stderr, "Could not personalize the device\n");
+				goto out;
+			}
+			printf("Done\n");
+			break;
+		case 'h':
+			usage(argv[0]);
+			break;
+		case 'v':
+			printf("Version: %s\n", PROJECT_VERSION);
+		default:
+			break;
 		}
-	}
-
-	printf("\n - Lock Data -\n");
-	ret = cmd_get_lock_data(ioif, buf);
-	CHECK_RES("Lock Data", ret, buf, LOCK_DATA_SIZE);
-
-	printf("\n - Lock Config -\n");
-	ret = cmd_get_lock_config(ioif, buf);
-	CHECK_RES("Lock Config", ret, buf, LOCK_CONFIG_SIZE);
-	{
-		uint8_t in_short[NONCE_SHORT_NUMIN] = {
-			  0x00, 0x01, 0x02, 0x03,
-			  0x04, 0x05, 0x06, 0x07,
-			  0x08, 0x09, 0x0a, 0x0b,
-			  0x0c, 0x0d, 0x0e, 0x0f,
-			  0x10, 0x11, 0x12, 0x13 };
-
-		uint8_t in_long[NONCE_LONG_NUMIN] = {
-			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-			0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
-			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-			0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF };
-
-		printf("\n - Nonce short -\n");
-		ret = cmd_get_nonce(ioif, in_short, sizeof(in_short), NONCE_MODE_UPDATE_SEED, buf, NONCE_LONG_LEN);
-		CHECK_RES("nonce", ret, buf, NONCE_LONG_LEN);
-
-		/*
-		 * For the passthrough/nonce long we only expect a status
-		 * packet, since there is no random number returned back to the
-		 * caller.
-		 */
-		printf("\n - Nonce long -\n");
-		ret = cmd_get_nonce(ioif, in_long, sizeof(in_long), NONCE_MODE_PASSTHROUGH, buf, 1);
-		CHECK_RES("nonce (long) response code", ret, buf, 1);
-	}
-
-	printf("\n - Gendig -\n");
-        /*
-	 * Use slot 3: This is very much configuration dependent,
-         * and it works with the default (factory) settings.
-         */
-	ret = cmd_gen_dig(ioif, NULL, 0, ZONE_DATA, 3);
-	if (ret != STATUS_OK) {
-		logd("Could not generate digest\n");
-	}
-
-#if 0
-	printf("\n - HMAC -\n");
-	/* 1 << 2 is to set the TempKey.SourceFlag, since we just above did a
-	 * passthrough nonce and therefore we used no internal randomness. */
-	ret = cmd_get_hmac(ioif, 1 << 2, 0, buf);
-	CHECK_RES("hmac", ret, buf, HMAC_LEN);
-#endif
-
-	/* MAC - CheckMAC */
-	{
-		uint8_t resp;
-		uint8_t mac_buf[MAC_LEN] = { 0 };
-		uint8_t in_long[NONCE_LONG_NUMIN] = {
-			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-			0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
-			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-			0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF };
-		uint8_t mac_challenge[32] = {
-			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-			0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
-			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-			0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF };
-		uint8_t check_mac_data[77] = { 0 };
-
-		printf("\n - MAC -\n");
-		ret = cmd_get_nonce(ioif, in_long, sizeof(in_long), NONCE_MODE_PASSTHROUGH, buf, 1);
-		CHECK_RES("nonce for mac", ret, buf, 1);
-		/*
-		 * Mode = 0x06
-		 * Bit 0: The 2nd 32 bytes are taken from the input challenge
-		 * Bit 1: The 1st 32 bytes are filled with TempKey
-		 * Bit 2: Value of TempKey.SourceFlag
-		 * Bit 3: MBZ
-		 * Bit 4: Don't include OTP[0:10]; fill with zeros
-		 * Bit 5: Don't include OTP[0:7]; fill with zeros
-		 * Bit 6: Don't include SN[2:3] and SN[4:7]; fill with zeros
-		 * Bit 7: MBZ
-		 */
-		ret = cmd_get_mac(ioif, mac_challenge, sizeof(mac_challenge), 0x06, 0, mac_buf, sizeof(mac_buf));
-		CHECK_RES("mac", ret, mac_buf, MAC_LEN);
-
-		printf("\n - CheckMAC -\n");
-		/* Data 1 (32 bytes): ClientChal
-		 * Data 2 (32 bytes): ClientResp
-		 * Data 3 (13 bytes): OtherData
-		 */
-		memcpy(check_mac_data, mac_challenge, 32);
-		memcpy(check_mac_data + 32, mac_buf, 32);
-		/* OtherData contains the parameters used for the MAC command */
-		check_mac_data[64] = 0x08; /* Opcode */
-		check_mac_data[65] = 0x06; /* Mode */
-		check_mac_data[66] = 0x00; /* Slot ID MSB */
-		check_mac_data[67] = 0x00; /* Slot ID LSB */
-		check_mac_data[68] = 0x00; /* OTP[8] or zero */
-		check_mac_data[69] = 0x00; /* OTP[9] or zero */
-		check_mac_data[70] = 0x00; /* OTP[10] or zero */
-		check_mac_data[71] = 0x00; /* SN[4] or zero */
-		check_mac_data[72] = 0x00; /* SN[5] or zero */
-		check_mac_data[73] = 0x00; /* SN[6] or zero */
-		check_mac_data[74] = 0x00; /* SN[7] or zero */
-		check_mac_data[75] = 0x00; /* SN[2] or zero */
-		check_mac_data[76] = 0x00; /* SN[3] or zero */
-
-		ret = cmd_get_nonce(ioif, in_long, sizeof(in_long), NONCE_MODE_PASSTHROUGH, buf, 1);
-		CHECK_RES("nonce for mac", ret, buf, 1);
-
-		/* Mode = 0x05
-		 * Bit 0: The 2nd 32 bytes are taken from ClientChal
-		 * Bit 1: The 1st 32 bytes are filled with TempKey
-		 * Bit 2: Value of TempKey.SourceFlag
-		 * Bit 3: MBZ
-		 * Bit 4: MBZ
-		 * Bit 5: 8-bytes of SHA message set to zero
-		 * Bit 6: MBZ
-		 * Bit 7: MBZ
-		 */
-		ret = cmd_check_mac(ioif, check_mac_data, sizeof(check_mac_data), 0x06, 0, &resp, 1);
-		CHECK_RES("checkmac", ret, &resp, 1);
-	}
-
-	printf("\n - SHA \n");
-	{
-		/* The caller is required to pass the padding and length
-		 * bytes of the message (Sect. 13.1)
-		 */
-		uint8_t sha_in[64] = {
-			/* Message */
-			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-			0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
-			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-			0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
-			/* Padding */
-			0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			/* Length */
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00
-		};
-		ret = cmd_sha(ioif, NULL, 0, buf, 1);
-		CHECK_RES("sha init", ret, buf, 1);
-
-		ret = cmd_sha(ioif, sha_in, sizeof(sha_in), buf, SHA_LEN);
-		CHECK_RES("sha compute", ret, buf, SHA_LEN);
-	}
-
-	printf("\n - Derive Key -\n");
-	{
-		uint8_t in_long[NONCE_LONG_NUMIN] = {
-			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-			0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
-			0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-			0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF
-		};
-		ret = cmd_get_nonce(ioif, in_long, sizeof(in_long), NONCE_MODE_PASSTHROUGH, buf, 1);
-		CHECK_RES("nonce for derive key", ret, buf, 1);
-
-		ret = cmd_derive_key(ioif, 1 << 2, 4, NULL, 0);
-		if (ret != STATUS_OK) {
-			loge("Derive Key failed\n");
-		}
-	}
-
-	printf("\n - Pause -\n");
-	ret = cmd_pause(ioif, 0xf00);
-	if (ret != STATUS_OK) {
-		logd("Device paused\n");
 	}
 
 out:
 	ret = at204_close(ioif);
 	if (ret != STATUS_OK) {
 		ret = STATUS_EXEC_ERROR;
-		logd("Couldn't close the device\n");
+		fprintf(stderr, "Couldn't close the device\n");
 	}
-
 	return ret;
 }
