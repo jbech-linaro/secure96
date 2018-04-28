@@ -11,14 +11,13 @@ MESSAGE(STATUS "CMAKE_C_COMPILER: " ${CMAKE_C_COMPILER})
 add_compile_options(-Wall -Werror)
 include_directories(include)
 
-set(SRC src/cmd.c
-	src/crc.c
-	src/debug.c
-	src/io.c
-	src/main.c
-	src/i2c_linux.c
-	src/packet.c
-	src/personalize.c)
+set(SRC ${CMAKE_SOURCE_DIR}/src/cmd.c
+	${CMAKE_SOURCE_DIR}/src/crc.c
+	${CMAKE_SOURCE_DIR}/src/debug.c
+	${CMAKE_SOURCE_DIR}/src/io.c
+	${CMAKE_SOURCE_DIR}/src/i2c_linux.c
+	${CMAKE_SOURCE_DIR}/src/packet.c
+	${CMAKE_SOURCE_DIR}/src/personalize.c)
 
 #add_definitions(-DPERSONALIZE)
 set(I2C_DEVICE "/dev/i2c-0")
@@ -26,7 +25,7 @@ set(I2C_DEVICE "/dev/i2c-0")
 #add_definitions(-DEXT_DEBUG_INFO)
 add_definitions(-DCMAKE_BUILD_TYPE=Debug)
 
-add_executable(${PROJECT_NAME} ${SRC})
+add_executable(${PROJECT_NAME} ${SRC} ${CMAKE_SOURCE_DIR}/src/main.c)
 
 target_compile_definitions(${PROJECT_NAME}
 	PRIVATE -DI2C_DEVICE="${I2C_DEVICE}"

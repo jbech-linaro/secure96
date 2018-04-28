@@ -105,6 +105,8 @@ enum {
  */
 uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr);
 
+#define SLOT_DATA_SIZE         32
+
 #define SLOT_ADDR(id) (8 * id)
 #define SLOT_CONFIG_OFFSET(slotnbr) (slotnbr % 2 ? 2 : 0)
 #define SLOT_CONFIG_SIZE 0x2
