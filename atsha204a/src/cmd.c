@@ -173,7 +173,7 @@ int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	if (ret == STATUS_OK)
 		memcpy(data, &resp_buf[offset], data_size);
 	else
-		loge("Failed to read from config zone!\n");
+		loge("Failed to read from %s zone!\n", zone2str(zone));
 
 	return ret;
 }
