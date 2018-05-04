@@ -39,22 +39,6 @@ int main(int argc, char *argv[])
 	while (!cmd_wake(ioif)) {};
 	printf("ATSHA204A is awake\n");
 
-#ifdef PERSONALIZE
-	printf("\n - Personalize -\n");
-	ret = atsha204a_personalize(ioif);
-	if (ret != STATUS_OK) {
-		printf("Failed to personalize the device\n");
-	}
-
-	printf("\n - Update Extra -\n");
-	ret = cmd_update_extra(ioif, 0, 0xff);
-	if (ret != STATUS_OK) {
-		printf("Failed to personalize the device\n");
-	}
-
-	goto out;
-#endif
-
 	printf("\n - Random -\n");
 	ret = cmd_get_random(ioif, buf, RANDOM_LEN);
 	CHECK_RES("random", ret, buf, RANDOM_LEN);
@@ -63,31 +47,6 @@ int main(int argc, char *argv[])
 	ret = cmd_get_devrev(ioif, buf, DEVREV_LEN);
 	CHECK_RES("devrev", ret, buf, DEVREV_LEN);
 
-	printf("\n - Serial number  -\n");
-	ret = cmd_get_serialnbr(ioif, buf, SERIALNUM_LEN);
-	CHECK_RES("serial number", ret, buf, SERIALNUM_LEN);
-
-	printf("\n - OTP mode -\n");
-	ret = cmd_get_otp_mode(ioif, buf);
-	CHECK_RES("otp mode", ret, buf, OTP_CONFIG_SIZE);
-
-	{
-		int i;
-		printf("\n - Slotconfig  -\n");
-		for (i = 0; i < 16; i++) {
-			printf("\n");
-			ret = cmd_get_slot_config(ioif, i, (uint16_t*)buf);
-			CHECK_RES("slotconfig", ret, buf, SLOT_CONFIG_SIZE);
-		}
-	}
-
-	printf("\n - Lock Data -\n");
-	ret = cmd_get_lock_data(ioif, buf);
-	CHECK_RES("Lock Data", ret, buf, LOCK_DATA_SIZE);
-
-	printf("\n - Lock Config -\n");
-	ret = cmd_get_lock_config(ioif, buf);
-	CHECK_RES("Lock Config", ret, buf, LOCK_CONFIG_SIZE);
 	{
 		uint8_t in_short[NONCE_SHORT_NUMIN] = {
 			  0x00, 0x01, 0x02, 0x03,
