@@ -21,12 +21,18 @@ set(SRC src/cmd.c
 	src/personalize.c)
 
 #add_definitions(-DPERSONALIZE)
+set(I2C_DEVICE "/dev/i2c-0")
+
 #add_definitions(-DEXT_DEBUG_INFO)
 add_definitions(-DCMAKE_BUILD_TYPE=Debug)
 
 add_executable(${PROJECT_NAME} ${SRC})
 
 target_compile_definitions(${PROJECT_NAME}
-	PRIVATE -DI2C_DEVICE="/dev/i2c-0"
+	PRIVATE -DI2C_DEVICE="${I2C_DEVICE}"
 	PRIVATE -DDEBUG
 )
+
+add_subdirectory(tests)
+add_custom_target(tests)
+add_dependencies(tests s96-204_tests)
