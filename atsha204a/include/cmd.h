@@ -124,16 +124,10 @@ uint8_t cmd_derive_key(struct io_interface *ioif, uint8_t random, uint8_t slotnb
 uint8_t cmd_check_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
 		      uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size);
 
-uint8_t cmd_get_config_zone(struct io_interface *ioif, uint8_t *buf, size_t size);
-
 uint8_t cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size);
 
 uint8_t cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr,
 		     uint8_t *hmac);
-
-uint8_t cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config);
-
-uint8_t cmd_get_lock_data(struct io_interface *ioif, uint8_t *lock_data);
 
 uint8_t cmd_lock_zone(struct io_interface *ioif, uint8_t zone, uint16_t *expected_crc);
 
@@ -143,14 +137,7 @@ uint8_t cmd_get_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
 uint8_t cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
 		      uint8_t mode, uint8_t *out, size_t out_size);
 
-uint8_t cmd_get_otp_mode(struct io_interface *ioif, uint8_t *otp_mode);
-
 uint8_t cmd_get_random(struct io_interface *ioif, uint8_t *buf, size_t size);
-
-uint8_t cmd_get_serialnbr(struct io_interface *ioif, uint8_t *buf, size_t size);
-
-uint8_t cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
-			    uint16_t *buf);
 
 uint8_t cmd_pause(struct io_interface *ioif, uint16_t selector);
 
