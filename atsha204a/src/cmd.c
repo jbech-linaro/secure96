@@ -318,7 +318,7 @@ uint8_t cmd_gen_dig(struct io_interface *ioif, const uint8_t *in, size_t in_size
 	return at204_msg(ioif, &p, &resp, sizeof(resp));
 }
 
-uint8_t cmd_pause(struct io_interface *ioif, uint16_t selector)
+uint8_t cmd_pause(struct io_interface *ioif, uint8_t selector)
 {
 	struct cmd_packet p;
 	uint8_t resp_buf;
