@@ -291,11 +291,13 @@ uint8_t cmd_get_nonce(struct io_interface *ioif, const uint8_t *in, size_t in_si
 	return ret;
 }
 
-uint8_t cmd_get_random(struct io_interface *ioif, uint8_t *buf, size_t size)
+uint8_t cmd_get_random(struct io_interface *ioif, uint8_t mode,
+		       uint8_t *buf, size_t size)
 {
 	struct cmd_packet p;
 
 	get_command(&p, OPCODE_RANDOM);
+	p.param1 = mode;
 
 	return at204_msg(ioif, &p, buf, size);
 }
