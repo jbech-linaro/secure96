@@ -209,7 +209,8 @@ uint8_t cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr, 
 	return at204_msg(ioif, &p, hmac, HMAC_LEN);
 }
 
-uint8_t cmd_lock_zone(struct io_interface *ioif, uint8_t zone, uint16_t *expected_crc)
+uint8_t cmd_lock_zone(struct io_interface *ioif, uint8_t zone,
+		      const uint16_t *expected_crc)
 {
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
@@ -254,7 +255,7 @@ out:
 	return ret;
 }
 
-uint8_t cmd_get_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
+uint8_t cmd_get_mac(struct io_interface *ioif, const uint8_t *in, size_t in_size,
 		    uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size)
 {
 	int ret = STATUS_EXEC_ERROR;
@@ -273,7 +274,7 @@ uint8_t cmd_get_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
 	return ret;
 }
 
-uint8_t cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
+uint8_t cmd_get_nonce(struct io_interface *ioif, const uint8_t *in, size_t in_size,
 		      uint8_t mode, uint8_t *out, size_t out_size)
 {
 	int ret = STATUS_EXEC_ERROR;
@@ -299,7 +300,7 @@ uint8_t cmd_get_random(struct io_interface *ioif, uint8_t *buf, size_t size)
 	return at204_msg(ioif, &p, buf, size);
 }
 
-uint8_t cmd_gen_dig(struct io_interface *ioif, uint8_t *in, size_t in_size,
+uint8_t cmd_gen_dig(struct io_interface *ioif, const uint8_t *in, size_t in_size,
 		    uint8_t zone, uint16_t slotnbr)
 {
 	uint8_t resp;
@@ -326,7 +327,7 @@ uint8_t cmd_pause(struct io_interface *ioif, uint16_t selector)
 	return at204_msg(ioif, &p, &resp_buf, 1);
 }
 
-uint8_t cmd_sha(struct io_interface *ioif, uint8_t *in, size_t in_size,
+uint8_t cmd_sha(struct io_interface *ioif, const uint8_t *in, size_t in_size,
 		uint8_t *out, size_t out_size)
 {
 	struct cmd_packet p;
@@ -352,7 +353,7 @@ uint8_t cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value)
 }
 
 uint8_t cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
-		  bool encrypted, uint8_t *data, size_t size)
+		  bool encrypted, const uint8_t *data, size_t size)
 {
 	uint8_t resp;
 	struct cmd_packet p;
