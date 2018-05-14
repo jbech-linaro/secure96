@@ -143,8 +143,8 @@ bool cmd_wake(struct io_interface *ioif)
 	return ret == STATUS_OK || ret == STATUS_AFTER_WAKE;
 }
 
-int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
-	     uint8_t offset, size_t size, void *data, size_t data_size)
+uint8_t cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
+		 uint8_t offset, size_t size, void *data, size_t data_size)
 {
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
@@ -178,8 +178,8 @@ int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	return ret;
 }
 
-int cmd_derive_key(struct io_interface *ioif, uint8_t random, uint8_t slotnbr,
-		   uint8_t *buf, size_t size)
+uint8_t cmd_derive_key(struct io_interface *ioif, uint8_t random, uint8_t slotnbr,
+		       uint8_t *buf, size_t size)
 {
 	uint8_t resp;
 	struct cmd_packet p;
@@ -197,8 +197,8 @@ int cmd_derive_key(struct io_interface *ioif, uint8_t random, uint8_t slotnbr,
 	return at204_msg(ioif, &p, &resp, sizeof(resp));
 }
 
-int cmd_check_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
-		  uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size)
+uint8_t cmd_check_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		      uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size)
 {
 	struct cmd_packet p;
 
@@ -211,7 +211,7 @@ int cmd_check_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
 	return at204_msg(ioif, &p, out, out_size);
 }
 
-int cmd_get_config_zone(struct io_interface *ioif, uint8_t *buf, size_t size)
+uint8_t cmd_get_config_zone(struct io_interface *ioif, uint8_t *buf, size_t size)
 {
 	int i;
 	int ret = STATUS_EXEC_ERROR;
@@ -230,7 +230,7 @@ int cmd_get_config_zone(struct io_interface *ioif, uint8_t *buf, size_t size)
 	return ret;
 }
 
-int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size)
+uint8_t cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size)
 {
 	struct cmd_packet p;
 
@@ -242,7 +242,7 @@ int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size)
 	return at204_msg(ioif, &p, buf, size);
 }
 
-int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr, uint8_t *hmac)
+uint8_t cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr, uint8_t *hmac)
 {
 	struct cmd_packet p;
 
@@ -263,7 +263,7 @@ int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr, uint
 	return at204_msg(ioif, &p, hmac, HMAC_LEN);
 }
 
-int cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config)
+uint8_t cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config)
 {
 	uint8_t _lock_config = 0;
 	int ret = STATUS_EXEC_ERROR;
@@ -279,7 +279,7 @@ int cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config)
 	return ret;
 }
 
-int cmd_get_lock_data(struct io_interface *ioif, uint8_t *lock_data)
+uint8_t cmd_get_lock_data(struct io_interface *ioif, uint8_t *lock_data)
 {
 	uint8_t _lock_data = 0;
 	int ret = STATUS_EXEC_ERROR;
@@ -295,7 +295,7 @@ int cmd_get_lock_data(struct io_interface *ioif, uint8_t *lock_data)
 	return ret;
 }
 
-int cmd_lock_zone(struct io_interface *ioif, uint8_t zone, uint16_t *expected_crc)
+uint8_t cmd_lock_zone(struct io_interface *ioif, uint8_t zone, uint16_t *expected_crc)
 {
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
@@ -340,8 +340,8 @@ out:
 	return ret;
 }
 
-int cmd_get_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
-		uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size)
+uint8_t cmd_get_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		    uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size)
 {
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
@@ -362,8 +362,8 @@ int cmd_get_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
 	return ret;
 }
 
-int cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
-		  uint8_t mode, uint8_t *out, size_t out_size)
+uint8_t cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		      uint8_t mode, uint8_t *out, size_t out_size)
 {
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
@@ -394,7 +394,7 @@ int cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
 	return ret;
 }
 
-int cmd_get_otp_mode(struct io_interface *ioif, uint8_t *otp_mode)
+uint8_t cmd_get_otp_mode(struct io_interface *ioif, uint8_t *otp_mode)
 {
 	uint32_t _otp_mode = 0;
 	int ret = STATUS_EXEC_ERROR;
@@ -426,7 +426,7 @@ int cmd_get_otp_mode(struct io_interface *ioif, uint8_t *otp_mode)
 	return ret;
 }
 
-int cmd_get_random(struct io_interface *ioif, uint8_t *buf, size_t size)
+uint8_t cmd_get_random(struct io_interface *ioif, uint8_t *buf, size_t size)
 {
 	struct cmd_packet p;
 
@@ -442,7 +442,7 @@ int cmd_get_random(struct io_interface *ioif, uint8_t *buf, size_t size)
 	return at204_msg(ioif, &p, buf, size);
 }
 
-int cmd_get_serialnbr(struct io_interface *ioif, uint8_t *buf, size_t size)
+uint8_t cmd_get_serialnbr(struct io_interface *ioif, uint8_t *buf, size_t size)
 {
 	/* Only 9 are used, but we read 4 bytes at a time */
 	uint8_t serial_nbr[12] = { 0 };
@@ -475,8 +475,8 @@ err:
 	return ret;
 }
 
-int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
-			uint16_t *slot_config)
+uint8_t cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
+			    uint16_t *slot_config)
 {
 	uint32_t _slot_config;
 	int ret = STATUS_EXEC_ERROR;
@@ -495,8 +495,8 @@ int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
 	return ret;
 }
 
-int cmd_gen_dig(struct io_interface *ioif, uint8_t *in, size_t in_size,
-		uint8_t zone, uint16_t slotnbr)
+uint8_t cmd_gen_dig(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		    uint8_t zone, uint16_t slotnbr)
 {
 	uint8_t resp;
 	struct cmd_packet p;
@@ -511,7 +511,7 @@ int cmd_gen_dig(struct io_interface *ioif, uint8_t *in, size_t in_size,
 	return at204_msg(ioif, &p, &resp, sizeof(resp));
 }
 
-int cmd_pause(struct io_interface *ioif, uint16_t selector)
+uint8_t cmd_pause(struct io_interface *ioif, uint16_t selector)
 {
 	struct cmd_packet p;
 	uint8_t resp_buf;
@@ -522,8 +522,8 @@ int cmd_pause(struct io_interface *ioif, uint16_t selector)
 	return at204_msg(ioif, &p, &resp_buf, 1);
 }
 
-int cmd_sha(struct io_interface *ioif, uint8_t *in, size_t in_size,
-	    uint8_t *out, size_t out_size)
+uint8_t cmd_sha(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		uint8_t *out, size_t out_size)
 {
 	struct cmd_packet p;
 
@@ -538,7 +538,7 @@ int cmd_sha(struct io_interface *ioif, uint8_t *in, size_t in_size,
 	return at204_msg(ioif, &p, out, out_size);
 }
 
-int cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value)
+uint8_t cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value)
 {
 	uint8_t resp_buf;
 	struct cmd_packet p;
@@ -550,8 +550,8 @@ int cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value)
 	return at204_msg(ioif, &p, &resp_buf, sizeof(resp_buf));
 }
 
-int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
-	      bool encrypted, uint8_t *data, size_t size)
+uint8_t cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
+		  bool encrypted, uint8_t *data, size_t size)
 {
 	uint8_t resp;
 	struct cmd_packet p;

@@ -115,54 +115,55 @@ uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr);
 
 bool wake(struct io_interface *ioif);
 
-int cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
-	     uint8_t offset, size_t size, void *data, size_t data_size);
+uint8_t cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
+		 uint8_t offset, size_t size, void *data, size_t data_size);
 
-int cmd_derive_key(struct io_interface *ioif, uint8_t random, uint8_t slotnbr,
-		   uint8_t *buf, size_t size);
+uint8_t cmd_derive_key(struct io_interface *ioif, uint8_t random, uint8_t slotnbr,
+		       uint8_t *buf, size_t size);
 
-int cmd_check_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
-		  uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size);
+uint8_t cmd_check_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		      uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size);
 
-int cmd_get_config_zone(struct io_interface *ioif, uint8_t *buf, size_t size);
+uint8_t cmd_get_config_zone(struct io_interface *ioif, uint8_t *buf, size_t size);
 
-int cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size);
+uint8_t cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size);
 
-int cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr, uint8_t *hmac);
+uint8_t cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr,
+		     uint8_t *hmac);
 
-int cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config);
+uint8_t cmd_get_lock_config(struct io_interface *ioif, uint8_t *lock_config);
 
-int cmd_get_lock_data(struct io_interface *ioif, uint8_t *lock_data);
+uint8_t cmd_get_lock_data(struct io_interface *ioif, uint8_t *lock_data);
 
-int cmd_lock_zone(struct io_interface *ioif, uint8_t zone, uint16_t *expected_crc);
+uint8_t cmd_lock_zone(struct io_interface *ioif, uint8_t zone, uint16_t *expected_crc);
 
-int cmd_get_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
-		uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size);
+uint8_t cmd_get_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		    uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size);
 
-int cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
-		  uint8_t mode, uint8_t *out, size_t out_size);
+uint8_t cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		      uint8_t mode, uint8_t *out, size_t out_size);
 
-int cmd_get_otp_mode(struct io_interface *ioif, uint8_t *otp_mode);
+uint8_t cmd_get_otp_mode(struct io_interface *ioif, uint8_t *otp_mode);
 
-int cmd_get_random(struct io_interface *ioif, uint8_t *buf, size_t size);
+uint8_t cmd_get_random(struct io_interface *ioif, uint8_t *buf, size_t size);
 
-int cmd_get_serialnbr(struct io_interface *ioif, uint8_t *buf, size_t size);
+uint8_t cmd_get_serialnbr(struct io_interface *ioif, uint8_t *buf, size_t size);
 
-int cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
-			uint16_t *buf);
+uint8_t cmd_get_slot_config(struct io_interface *ioif, uint8_t slotnbr,
+			    uint16_t *buf);
 
-int cmd_pause(struct io_interface *ioif, uint16_t selector);
+uint8_t cmd_pause(struct io_interface *ioif, uint16_t selector);
 
-int cmd_sha(struct io_interface *ioif, uint8_t *in, size_t in_size,
-	    uint8_t *out, size_t out_size);
+uint8_t cmd_sha(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		uint8_t *out, size_t out_size);
 
-int cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value);
+uint8_t cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value);
 
-int cmd_gen_dig(struct io_interface *ioif, uint8_t *in, size_t in_size,
-		uint8_t zone, uint16_t slotnbr);
+uint8_t cmd_gen_dig(struct io_interface *ioif, uint8_t *in, size_t in_size,
+		    uint8_t zone, uint16_t slotnbr);
 
 bool cmd_wake(struct io_interface *ioif);
 
-int cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
-	      bool encrypted, uint8_t *data, size_t size);
+uint8_t cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
+		  bool encrypted, uint8_t *data, size_t size);
 #endif
