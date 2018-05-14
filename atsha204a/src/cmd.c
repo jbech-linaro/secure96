@@ -329,13 +329,13 @@ uint8_t cmd_pause(struct io_interface *ioif, uint8_t selector)
 	return at204_msg(ioif, &p, &resp_buf, 1);
 }
 
-uint8_t cmd_sha(struct io_interface *ioif, const uint8_t *in, size_t in_size,
-		uint8_t *out, size_t out_size)
+uint8_t cmd_sha(struct io_interface *ioif, uint8_t mode, const uint8_t *in,
+		size_t in_size, uint8_t *out, size_t out_size)
 {
 	struct cmd_packet p;
 
 	get_command(&p, OPCODE_SHA);
-	p.param1 = in_size ? 1 : 0;
+	p.param1 = mode;
 	p.data = in;
 	p.data_length = in_size;
 
