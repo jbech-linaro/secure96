@@ -127,28 +127,29 @@ uint8_t cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size);
 uint8_t cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr,
 		     uint8_t *hmac);
 
-uint8_t cmd_lock_zone(struct io_interface *ioif, uint8_t zone, uint16_t *expected_crc);
+uint8_t cmd_lock_zone(struct io_interface *ioif, uint8_t zone,
+		      const uint16_t *expected_crc);
 
-uint8_t cmd_get_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
+uint8_t cmd_get_mac(struct io_interface *ioif, const uint8_t *in, size_t in_size,
 		    uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size);
 
-uint8_t cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
+uint8_t cmd_get_nonce(struct io_interface *ioif, const uint8_t *in, size_t in_size,
 		      uint8_t mode, uint8_t *out, size_t out_size);
 
 uint8_t cmd_get_random(struct io_interface *ioif, uint8_t *buf, size_t size);
 
 uint8_t cmd_pause(struct io_interface *ioif, uint16_t selector);
 
-uint8_t cmd_sha(struct io_interface *ioif, uint8_t *in, size_t in_size,
+uint8_t cmd_sha(struct io_interface *ioif, const uint8_t *in, size_t in_size,
 		uint8_t *out, size_t out_size);
 
 uint8_t cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value);
 
-uint8_t cmd_gen_dig(struct io_interface *ioif, uint8_t *in, size_t in_size,
+uint8_t cmd_gen_dig(struct io_interface *ioif, const uint8_t *in, size_t in_size,
 		    uint8_t zone, uint16_t slotnbr);
 
 bool cmd_wake(struct io_interface *ioif);
 
 uint8_t cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
-		  bool encrypted, uint8_t *data, size_t size);
+		  bool encrypted, const uint8_t *data, size_t size);
 #endif
