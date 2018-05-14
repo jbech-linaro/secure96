@@ -16,10 +16,8 @@ set(SRC ${CMAKE_SOURCE_DIR}/src/cmd.c
 	${CMAKE_SOURCE_DIR}/src/debug.c
 	${CMAKE_SOURCE_DIR}/src/io.c
 	${CMAKE_SOURCE_DIR}/src/i2c_linux.c
-	${CMAKE_SOURCE_DIR}/src/packet.c
-	${CMAKE_SOURCE_DIR}/src/personalize.c)
+	${CMAKE_SOURCE_DIR}/src/packet.c)
 
-#add_definitions(-DPERSONALIZE)
 set(I2C_DEVICE "/dev/i2c-0")
 
 #add_definitions(-DEXT_DEBUG_INFO)
