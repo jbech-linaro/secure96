@@ -113,8 +113,6 @@ uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr);
 
 #define OTP_ADDR(addr) (4 * addr)
 
-bool wake(struct io_interface *ioif);
-
 uint8_t cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 		 uint8_t offset, size_t size, void *data, size_t data_size);
 

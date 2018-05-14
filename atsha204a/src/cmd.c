@@ -24,8 +24,7 @@ uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr)
 }
 
 /*
- * This serializes a command packet. It will also calculate and store the
- * checksum for the package.
+ * Initializes a command packet.
  */
 void get_command(struct cmd_packet *p, uint8_t opcode)
 {
@@ -34,6 +33,9 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 	p->count = 0;
 	p->command = PKT_FUNC_COMMAND;
 	p->opcode = opcode;
+	p->param1 = 0;
+	p->param2[0] = 0;
+	p->param2[1] = 0;
 	p->data = NULL;
 	p->data_length = 0;
 
@@ -44,12 +46,6 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 
 	case OPCODE_DEVREV:
-		p->count = 0;
-		p->param1 = 0;
-		p->param2[0] = 0;
-		p->param2[1] = 0;
-		p->data = NULL;
-		p->data_length = 0;
 		p->max_time = 2; /* Table 8.4 */
 		break;
 
@@ -58,14 +54,10 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 
 	case OPCODE_HMAC:
-		p->param1 = 0; /* Mode */
-		p->param2[0] = 0; /* SlotID */
-		p->param2[1] = 0; /* SlotID */
 		p->max_time = 69; /* Table 8.4 */
 		break;
 
 	case OPCODE_CHECKMAC:
-		p->param2[1] = 0;
 		p->max_time = 38; /* Table 8.4 */
 		break;
 
@@ -78,48 +70,30 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 		break;
 
 	case OPCODE_NONCE:
-		p->count = 0;
-		p->param2[0] = 0x00;
-		p->param2[1] = 0x00;
 		p->max_time = 60; /* Table 8.4 */
 		break;
 
 	case OPCODE_PAUSE:
-		p->param2[0] = 0x00;
-		p->param2[1] = 0x00;
 		p->max_time = 2; /* Table 8.4 */
 		break;
 
 	case OPCODE_RANDOM:
-		p->count = 0;
-		p->param1 = 0;
-		p->param2[0] = 0x00;
-		p->param2[1] = 0x00;
-		p->data = NULL;
-		p->data_length = 0;
 		p->max_time = 50; /* Table 8.4 */
 		break;
 
 	case OPCODE_READ:
-		p->count = 0;
-		p->data = NULL;
-		p->data_length = 0;
 		p->max_time = 4; /* Table 8.4 */
 		break;
 
 	case OPCODE_SHA:
-		p->param2[0] = 0;
-		p->param2[1] = 0;
 		p->max_time = 22; /* Table 8.4 */
 		break;
 
 	case OPCODE_UPDATEEXTRA:
-		p->param2[1] = 0;
 		p->max_time = 8; /* Table 8.4 */
 		break;
 
 	case OPCODE_WRITE:
-		p->param2[1] = 0;
 		p->max_time = 20; /* Max is 42, lowered it to get better performance */
 		break;
 
@@ -184,9 +158,6 @@ uint8_t cmd_derive_key(struct io_interface *ioif, uint8_t random, uint8_t slotnb
 	uint8_t resp;
 	struct cmd_packet p;
 
-	if (size && (size != MAC_LEN || !buf))
-		return STATUS_BAD_PARAMETERS;
-
 	get_command(&p, OPCODE_DERIVEKEY);
 	p.param1 = random;
 	p.param2[0] = slotnbr & 0xff;
@@ -215,9 +186,6 @@ uint8_t cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size)
 {
 	struct cmd_packet p;
 
-	if (size != DEVREV_LEN || !buf)
-		return STATUS_BAD_PARAMETERS;
-
 	get_command(&p, OPCODE_DEVREV);
 
 	return at204_msg(ioif, &p, buf, size);
@@ -226,9 +194,6 @@ uint8_t cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size)
 uint8_t cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr, uint8_t *hmac)
 {
 	struct cmd_packet p;
-
-	if (!hmac)
-		return STATUS_BAD_PARAMETERS;
 
 	get_command(&p, OPCODE_HMAC);
 
@@ -305,9 +270,6 @@ uint8_t cmd_get_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
 
 	ret = at204_msg(ioif, &p, out, out_size);
 
-	if (ret != STATUS_OK)
-		memset(out, 0, out_size);
-
 	return ret;
 }
 
@@ -317,18 +279,6 @@ uint8_t cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
 
-	if (!in ||
-	    (in_size != NONCE_SHORT_NUMIN && in_size != NONCE_LONG_NUMIN) ||
-	    !out || (out_size != NONCE_SHORT_LEN && out_size != NONCE_LONG_LEN))
-		return STATUS_BAD_PARAMETERS;
-
-	if (mode != NONCE_MODE_UPDATE_SEED && mode != NONCE_MODE_NO_SEED &&
-	     mode != NONCE_MODE_PASSTHROUGH)
-		return STATUS_BAD_PARAMETERS;
-
-	if (in_size == NONCE_LONG_NUMIN && mode != NONCE_MODE_PASSTHROUGH)
-		return STATUS_BAD_PARAMETERS;
-
 	get_command(&p, OPCODE_NONCE);
 
 	p.param1 = mode;
@@ -337,22 +287,12 @@ uint8_t cmd_get_nonce(struct io_interface *ioif, uint8_t *in, size_t in_size,
 
 	ret = at204_msg(ioif, &p, out, out_size);
 
-	if (ret != STATUS_OK)
-		memset(out, 0, out_size);
-
 	return ret;
 }
 
 uint8_t cmd_get_random(struct io_interface *ioif, uint8_t *buf, size_t size)
 {
 	struct cmd_packet p;
-
-	/*
-	 * ATSHA204A will always need to return the result from RANDOM in a 32
-	 * byte buffer, so always make this check.
-	 */
-	if (size != RANDOM_LEN || !buf)
-		return STATUS_BAD_PARAMETERS;
 
 	get_command(&p, OPCODE_RANDOM);
 
@@ -390,9 +330,6 @@ uint8_t cmd_sha(struct io_interface *ioif, uint8_t *in, size_t in_size,
 		uint8_t *out, size_t out_size)
 {
 	struct cmd_packet p;
-
-	if (in_size && in_size % SHA_BLOCK_LEN)
-		return STATUS_BAD_PARAMETERS;
 
 	get_command(&p, OPCODE_SHA);
 	p.param1 = in_size ? 1 : 0;
