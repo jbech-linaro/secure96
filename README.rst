@@ -19,8 +19,8 @@ Build instructions
 ------------------
 .. code-block:: bash
 
-	$ mkdir -p atsha204a/build
-	$ cd atsha204a/build
+	$ mkdir -p s96at/build
+	$ cd s96at/build
 	$ cmake -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc ..
 
 If you are running natively on an Arm device, then you do not have to specify
