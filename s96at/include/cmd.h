@@ -21,22 +21,17 @@ enum {
 #define ZONE_OTP_SIZE 		64
 #define ZONE_DATA_SIZE		512
 
+#define ZONE_CONFIG_NUM_WORDS  22
+#define ZONE_DATA_NUM_SLOTS    16
+#define ZONE_OTP_NUM_WORDS     16
+
 #define LOCK_CONFIG_LOCKED	0x0
 #define LOCK_CONFIG_UNLOCKED	0x55
 #define LOCK_DATA_LOCKED	0x0
 #define LOCK_DATA_UNLOCKED	0x55
 
-/* Sizes for out parameter (RandOut) */
-#define NONCE_SHORT_LEN		1
-#define NONCE_LONG_LEN		32
-
-/* Sizes for in parameter (NumIn) */
-#define NONCE_SHORT_NUMIN	20
-#define NONCE_LONG_NUMIN	32
-
-#define NONCE_MODE_UPDATE_SEED  0
-#define NONCE_MODE_NO_SEED      1
-#define NONCE_MODE_PASSTHROUGH  3
+#define TEMPKEY_SOURCE_RANDOM	0
+#define TEMPKEY_SOURCE_INPUT	1
 
 #define HMAC_LEN		32
 #define RANDOM_LEN		32
@@ -44,11 +39,22 @@ enum {
 #define SERIALNUM_LEN		9
 #define MAC_LEN			32
 #define SHA_LEN			32
-#define SHA_BLOCK_LEN		64
 
 #define WORD_SIZE		4
 #define MAX_READ_SIZE		32 /* bytes */
 #define MAX_WRITE_SIZE		32
+
+#define MAC_MODE_TEMPKEY_SOURCE_SHIFT  2
+#define MAC_MODE_USE_OTP_88_BITS_SHIFT 4
+#define MAC_MODE_USE_OTP_64_BITS_SHIFT 5
+#define MAC_MODE_USE_SN_SHIFT          6
+
+#define NONCE_MODE_RANDOM		0
+#define NONCE_MODE_RANDOM_NO_SEED	1
+#define NONCE_MODE_PASSTHROUGH		3
+
+#define SHA_MODE_INIT          0x00
+#define SHA_MODE_COMPUTE       0x01
 
 /* Word address values */
 #define PKT_FUNC_RESET		0x0
