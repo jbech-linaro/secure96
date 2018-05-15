@@ -1,5 +1,5 @@
 #set(CMAKE_TOOLCHAIN_FILE CMakeToolchain.txt)
-project(s96-204 C)
+project(s96at C)
 
 # Required cmake version
 cmake_minimum_required(VERSION 3.0.2)
@@ -11,19 +11,22 @@ MESSAGE(STATUS "CMAKE_C_COMPILER: " ${CMAKE_C_COMPILER})
 add_compile_options(-Wall -Werror)
 include_directories(include)
 
-set(SRC ${CMAKE_SOURCE_DIR}/src/cmd.c
+set(SRC ${CMAKE_SOURCE_DIR}/src/s96at.c
+	${CMAKE_SOURCE_DIR}/src/cmd.c
 	${CMAKE_SOURCE_DIR}/src/crc.c
 	${CMAKE_SOURCE_DIR}/src/debug.c
 	${CMAKE_SOURCE_DIR}/src/io.c
 	${CMAKE_SOURCE_DIR}/src/i2c_linux.c
-	${CMAKE_SOURCE_DIR}/src/packet.c)
+	${CMAKE_SOURCE_DIR}/src/packet.c
+	${CMAKE_SOURCE_DIR}/src/sha.c)
 
 set(I2C_DEVICE "/dev/i2c-0")
 
 #add_definitions(-DEXT_DEBUG_INFO)
 add_definitions(-DCMAKE_BUILD_TYPE=Debug)
 
-add_executable(${PROJECT_NAME} ${SRC} ${CMAKE_SOURCE_DIR}/src/main.c)
+add_library(${PROJECT_NAME} SHARED ${SRC})
+set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER include/s96at.h)
 
 target_compile_definitions(${PROJECT_NAME}
 	PRIVATE -DI2C_DEVICE="${I2C_DEVICE}"
