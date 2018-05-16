@@ -56,12 +56,6 @@ enum {
 #define SHA_MODE_INIT          0x00
 #define SHA_MODE_COMPUTE       0x01
 
-/* Word address values */
-#define PKT_FUNC_RESET		0x0
-#define PKT_FUNC_SLEEP		0x1
-#define PKT_FUNC_IDLE		0x2
-#define PKT_FUNC_COMMAND	0x3
-
 /* OP-codes for each command, see section 8.5.4 in spec */
 #define OPCODE_DERIVEKEY	0x1c
 #define OPCODE_DEVREV 		0x30

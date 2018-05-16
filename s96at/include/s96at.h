@@ -389,6 +389,34 @@ uint8_t s96at_lock_zone(struct s96at_desc *desc, enum s96at_zone zone, uint16_t 
  */
 uint8_t s96at_read(struct s96at_desc *desc, enum s96at_zone zone, uint8_t id, uint8_t *buf);
 
+/* Put the device into the sleep state
+ *
+ * Puts the device in low-power sleep. The device does not respond until the
+ * next wakeup is sent. The volatile state of the device is reset.
+ *
+ * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ */
+uint8_t s96at_sleep(struct s96at_desc *desc);
+
+/* Put the device into the idle state
+ *
+ * Puts the device into the idle state. The device does not respond until the
+ * next wakeup is sent. The contents of RNG seed register and TempKey are
+ * retained.
+ *
+ * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ */
+uint8_t s96at_idle(struct s96at_desc *desc);
+
+/* Reset the address counter
+ *
+ * Resets the address counter. This allows re-reading the device's output
+ * buffer.
+ *
+ * Returns always S96AT_SUCCESS.
+ */
+uint8_t s96at_reset(struct s96at_desc *desc);
+
 /* Wake up the device
  *
  * Wakes up the device by sending the wake-up sequence. Upon wake up, a watchdog

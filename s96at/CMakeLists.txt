@@ -15,6 +15,7 @@ set(SRC ${CMAKE_SOURCE_DIR}/src/s96at.c
 	${CMAKE_SOURCE_DIR}/src/cmd.c
 	${CMAKE_SOURCE_DIR}/src/crc.c
 	${CMAKE_SOURCE_DIR}/src/debug.c
+	${CMAKE_SOURCE_DIR}/src/device.c
 	${CMAKE_SOURCE_DIR}/src/io.c
 	${CMAKE_SOURCE_DIR}/src/i2c_linux.c
 	${CMAKE_SOURCE_DIR}/src/packet.c

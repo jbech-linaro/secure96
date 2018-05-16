@@ -786,6 +786,23 @@ static int test_read_otp(void)
 	return memcmp(buf_a, buf_e, ARRAY_LEN(buf_e));
 }
 
+static int test_reset(void)
+{
+	uint8_t ret;
+	uint8_t random1[S96AT_RANDOM_LEN];
+	uint8_t random2[S96AT_RANDOM_LEN];
+
+	ret = s96at_get_random(&desc, S96AT_RANDOM_MODE_UPDATE_SEED, random1);
+	CHECK_RES("Random 1", ret, random1, ARRAY_LEN(random1));
+
+	/* Now send a reset and read the FIFO again */
+	s96at_reset(&desc);
+	ret = at204_read(desc.ioif, random2, ARRAY_LEN(random2));
+	CHECK_RES("Random 2", ret, random2, ARRAY_LEN(random2));
+
+	return memcmp(random1, random2, ARRAY_LEN(random2));
+}
+
 int main(int argc, char *argv[])
 {
 	uint8_t ret;
@@ -811,6 +828,7 @@ int main(int argc, char *argv[])
 		{"Read: Config", test_read_config},
 		{"Read: Data", test_read_data},
 		{"Read: OTP", test_read_otp},
+		{"Reset", test_reset},
 		{"SHA", test_sha},
 		{0, NULL}
 	};
@@ -832,6 +850,14 @@ int main(int argc, char *argv[])
 		ret = tests[i].func();
 		printf("%-30s %s\n", tests[i].name,
 		       ret ? "\x1B[31m[FAIL]\033[0m" : "\x1B[32m[PASS]\033[0m");
+
+		/* Force an idle-wake cycle every 4 tests to prevent the watchdog
+		 * from putting the device to sleep during the execution of a test.
+		 */
+		if ((i + 1) % 4 == 0) {
+			s96at_idle(&desc);
+			while (s96at_wake(&desc) != S96AT_STATUS_READY) {};
+		}
 	}
 	printf("Done\n");
 out:
