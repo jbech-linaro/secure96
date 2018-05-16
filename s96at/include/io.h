@@ -27,6 +27,7 @@ struct io_interface {
 	size_t (*write)(void *ctx, const void *buf, size_t size);
 	size_t (*read)(void *ctx, void *buf, size_t size);
 	uint32_t (*close)(void *ctx);
+	uint32_t (*wake)(void *ctx);
 };
 
 uint32_t register_io_interface(uint8_t io_interface_type,
@@ -37,6 +38,7 @@ int at204_write(struct io_interface *ioif, void *buf, size_t size);
 int at204_write2(struct io_interface *ioif, struct cmd_packet *p);
 int at204_read(struct io_interface *ioif, void *buf, size_t size);
 int at204_close(struct io_interface *ioif);
+int at204_wake(struct io_interface *ioif);
 int at204_msg(struct io_interface *ioif, struct cmd_packet *p, void *resp_buf,
 	      size_t size);
 #endif

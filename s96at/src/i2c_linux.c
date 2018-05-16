@@ -64,6 +64,32 @@ static uint32_t i2c_linux_close(void *ctx)
 	return close(ictx->fd) == 0 ? STATUS_OK : STATUS_EXEC_ERROR;
 }
 
+/* As Linux ioctls do not provide a way to control the I2C lines directly,
+ * we send a request to address 0x00, which pulls SDA low for 7 cycles.
+ * This method is not failsafe as the wakeup low duration is 60 usec
+ * and the device can operate on frequencies up to 1MHz. This will therefore
+ * only work on systems clocked up to 133KHz.
+ */
+static uint32_t i2c_linux_wake(void *ctx)
+{
+	int fd;
+	uint8_t data = 0;
+
+	fd = open(I2C_DEVICE, O_RDWR);
+	if (fd < 0) {
+		loge("Couldn't open the device\n");
+		return STATUS_EXEC_ERROR;
+	}
+	if (ioctl(fd, I2C_SLAVE, 0) < 0) {
+		loge("Couldn't talk to the slave\n");
+		return STATUS_EXEC_ERROR;
+	}
+	write(fd, &data, sizeof(data));
+	close(fd);
+
+	return STATUS_OK;
+}
+
 static struct i2c_linux_ctx i2c_ctx;
 
 struct io_interface i2c_linux = {
@@ -71,5 +97,6 @@ struct io_interface i2c_linux = {
 	.open = i2c_linux_open,
 	.write = i2c_linux_write,
 	.read = i2c_linux_read,
-	.close = i2c_linux_close
+	.close = i2c_linux_close,
+	.wake = i2c_linux_wake
 };

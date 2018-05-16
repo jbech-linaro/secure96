@@ -12,6 +12,7 @@
 #define S96AT_STATUS_OK				0x00
 #define S96AT_STATUS_CHECKMAC_FAIL		0x01
 #define S96AT_STATUS_EXEC_ERROR			0x0f
+#define S96AT_STATUS_READY			0x11
 #define S96AT_STATUS_PADDING_ERROR		0x98
 #define S96AT_STATUS_BAD_PARAMETERS		0x99
 
@@ -396,7 +397,7 @@ uint8_t s96at_read(struct s96at_desc *desc, enum s96at_zone zone, uint8_t id, ui
  * current command execution or IO state. It is therefore required that all operations
  * are completed within S96AT_WATCHDOG_TIME.
  *
- * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ * Returns S96AT_STATUS_READY on device wake, otherwise S96AT_STATUS_EXEC_ERROR.
  */
 uint8_t s96at_wake(struct s96at_desc *desc);
 

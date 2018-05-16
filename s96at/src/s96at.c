@@ -39,10 +39,18 @@ uint8_t s96at_cleanup(struct s96at_desc *desc)
 
 uint8_t s96at_wake(struct s96at_desc *desc)
 {
-	if (cmd_wake(desc->ioif) == true)
-		return S96AT_STATUS_OK;
-	else
+	uint8_t ret;
+	uint8_t buf;
+
+	if (at204_wake(desc->ioif) != STATUS_OK)
 		return S96AT_STATUS_EXEC_ERROR;
+
+	ret = at204_read(desc->ioif, &buf, sizeof(buf));
+
+	if (ret == S96AT_STATUS_OK && buf == S96AT_STATUS_READY)
+		ret = S96AT_STATUS_READY;
+
+	return ret;
 }
 
 uint8_t s96at_derive_key(struct s96at_desc *desc, uint8_t slot, uint8_t *mac,

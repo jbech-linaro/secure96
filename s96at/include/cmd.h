@@ -62,8 +62,6 @@ enum {
 #define PKT_FUNC_IDLE		0x2
 #define PKT_FUNC_COMMAND	0x3
 
-#define CMD_WAKEUP 0x0
-
 /* OP-codes for each command, see section 8.5.4 in spec */
 #define OPCODE_DERIVEKEY	0x1c
 #define OPCODE_DEVREV 		0x30
@@ -154,8 +152,6 @@ uint8_t cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value)
 
 uint8_t cmd_gen_dig(struct io_interface *ioif, const uint8_t *in, size_t in_size,
 		    uint8_t zone, uint16_t slotnbr);
-
-bool cmd_wake(struct io_interface *ioif);
 
 uint8_t cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 		  bool encrypted, const uint8_t *data, size_t size);

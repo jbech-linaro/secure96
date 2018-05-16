@@ -824,7 +824,7 @@ int main(int argc, char *argv[])
 	}
 
 	logd("\n - Wake -\n");
-	while (!s96at_wake(&desc)) {};
+	while (s96at_wake(&desc) != S96AT_STATUS_READY) {};
 	logd("ATSHA204A is awake\n");
 
 	for (int i = 0 ; tests[i].func != NULL; i++) {
