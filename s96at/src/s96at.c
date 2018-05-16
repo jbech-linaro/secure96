@@ -6,6 +6,7 @@
 
 #include <cmd.h>
 #include <crc.h>
+#include <device.h>
 #include <io.h>
 #include <s96at.h>
 #include <sha.h>
@@ -35,6 +36,21 @@ uint8_t s96at_cleanup(struct s96at_desc *desc)
 		ret = at204_close(desc->ioif);
 
 	return ret;
+}
+
+uint8_t s96at_idle(struct s96at_desc *desc)
+{
+	return device_idle(desc->ioif);
+}
+
+uint8_t s96at_reset(struct s96at_desc *desc)
+{
+	return device_reset(desc->ioif);
+}
+
+uint8_t s96at_sleep(struct s96at_desc *desc)
+{
+	return device_sleep(desc->ioif);
 }
 
 uint8_t s96at_wake(struct s96at_desc *desc)

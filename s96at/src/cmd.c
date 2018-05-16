@@ -11,6 +11,7 @@
 #include <cmd.h>
 #include <crc.h>
 #include <debug.h>
+#include <device.h>
 #include <packet.h>
 #include <status.h>
 
