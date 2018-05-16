@@ -101,6 +101,11 @@ int at204_close(struct io_interface *ioif)
 	return ioif->close(ioif->ctx);
 }
 
+int at204_wake(struct io_interface *ioif)
+{
+	return ioif->wake(ioif->ctx);
+}
+
 int at204_write2(struct io_interface *ioif, struct cmd_packet *p)
 {
 	uint8_t *serialized_pkt = NULL;

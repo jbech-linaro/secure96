@@ -102,21 +102,6 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 	}
 }
 
-bool cmd_wake(struct io_interface *ioif)
-{
-	int ret = STATUS_EXEC_ERROR;
-	ssize_t n = 0;
-	uint8_t cmd = CMD_WAKEUP;
-	uint8_t buf;
-
-	n = at204_write(ioif, &cmd, sizeof(cmd));
-	if (n <= 0)
-		return false;
-
-	ret = at204_read(ioif, &buf, sizeof(buf));
-	return ret == STATUS_OK || ret == STATUS_AFTER_WAKE;
-}
-
 uint8_t cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 		 uint8_t offset, size_t size, void *data, size_t data_size)
 {
