@@ -17,6 +17,7 @@
 static uint32_t i2c_linux_open(void *ctx)
 {
 	struct i2c_linux_ctx *ictx = ctx;
+
 	ictx->fd = open(I2C_DEVICE, O_RDWR);
 	if (ictx->fd < 0) {
 		logd("Couldn't open the device\n");

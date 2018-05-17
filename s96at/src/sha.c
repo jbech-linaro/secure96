@@ -36,9 +36,9 @@ int sha_apply_padding(uint8_t *buf, size_t buf_len, size_t msg_len, size_t *padd
 
 	memset(buf + msg_len, 0x00, buf_len - msg_len);
 	buf[msg_len] |= 0x80;
-	for (i = 0; i < SHA_PADDING_LENGTH_LEN; i++) {
+	for (i = 0; i < SHA_PADDING_LENGTH_LEN; i++)
 		buf[msg_len + padding_len + i] = ((msg_len * 8) >> (56 - i * 8)) & 0xff;
-	}
+
 	*padded_msg_len = msg_len + padding_len + SHA_PADDING_LENGTH_LEN;
 
 	return S96AT_STATUS_OK;

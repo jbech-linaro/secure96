@@ -18,7 +18,7 @@ enum {
 };
 
 #define ZONE_CONFIG_SIZE	88
-#define ZONE_OTP_SIZE 		64
+#define ZONE_OTP_SIZE		64
 #define ZONE_DATA_SIZE		512
 
 #define ZONE_CONFIG_NUM_WORDS  22
@@ -64,19 +64,19 @@ enum {
 
 /* OP-codes for each command, see section 8.5.4 in spec */
 #define OPCODE_DERIVEKEY	0x1c
-#define OPCODE_DEVREV 		0x30
-#define OPCODE_GENDIG 		0x15
-#define OPCODE_HMAC 		0x11
+#define OPCODE_DEVREV		0x30
+#define OPCODE_GENDIG		0x15
+#define OPCODE_HMAC		0x11
 #define OPCODE_CHECKMAC		0x28
-#define OPCODE_LOCK 		0x17
-#define OPCODE_MAC 		0x08
-#define OPCODE_NONCE 		0x16
-#define OPCODE_PAUSE 		0x01
-#define OPCODE_RANDOM 		0x1b
-#define OPCODE_READ 		0x02
-#define OPCODE_SHA 		0x47
-#define OPCODE_UPDATEEXTRA 	0x20
-#define OPCODE_WRITE 		0x12
+#define OPCODE_LOCK		0x17
+#define OPCODE_MAC		0x08
+#define OPCODE_NONCE		0x16
+#define OPCODE_PAUSE		0x01
+#define OPCODE_RANDOM		0x1b
+#define OPCODE_READ		0x02
+#define OPCODE_SHA		0x47
+#define OPCODE_UPDATEEXTRA	0x20
+#define OPCODE_WRITE		0x12
 
 /* Addresses etc for the configuration zone. */
 #define OTP_CONFIG_ADDR		0x4

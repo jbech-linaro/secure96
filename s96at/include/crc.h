@@ -11,7 +11,7 @@
 #include <cmd.h>
 
 #define CRC_LEN		2 /* In bytes */
-#define CRC_POLYNOM 	0x8005
+#define CRC_POLYNOM	0x8005
 
 bool crc_valid(const uint8_t *data, uint8_t *crc, size_t data_len);
 uint16_t get_packet_crc(struct cmd_packet *p, size_t payload_size);
