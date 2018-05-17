@@ -8,7 +8,7 @@ set(PROJECT_VERSION "0.1.0")
 
 MESSAGE(STATUS "CMAKE_C_COMPILER: " ${CMAKE_C_COMPILER})
 
-add_compile_options(-Wall -Werror)
+add_compile_options(-Wall -Werror -std=gnu99)
 include_directories(include)
 
 set(SRC ${CMAKE_SOURCE_DIR}/src/s96at.c
