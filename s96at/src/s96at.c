@@ -20,7 +20,7 @@ uint8_t s96at_init(enum s96at_device device, enum s96at_io_interface_type iface,
 
 	ret = register_io_interface(IO_I2C_LINUX, &desc->ioif);
 	if (ret != STATUS_OK)
-	    return ret;
+		return ret;
 
 	ret = at204_open(desc->ioif);
 
@@ -109,6 +109,7 @@ uint8_t s96at_gen_digest(struct s96at_desc *desc, enum s96at_zone zone,
 			 uint8_t slot, uint8_t *data)
 {
 	size_t data_len;
+
 	if (data)
 		data_len = S96AT_GENDIG_INPUT_LEN;
 	else
@@ -246,7 +247,7 @@ uint8_t s96at_check_mac(struct s96at_desc *desc, enum s96at_mac_mode mode,
 	/* OtherData contains the parameters used for the MAC command */
 	check_mac_data[64] = OPCODE_MAC; /* Opcode */
 	check_mac_data[65] = mac_mode;
-	check_mac_data[66] = 0x00; 	 /* Slot ID MSB */
+	check_mac_data[66] = 0x00;	 /* Slot ID MSB */
 	check_mac_data[67] = data->slot; /* Slot ID LSB */
 
 	if (data->otp) {

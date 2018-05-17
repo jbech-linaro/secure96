@@ -131,6 +131,7 @@ int at204_msg(struct io_interface *ioif, struct cmd_packet *p, void *resp_buf,
 	      size_t size)
 {
 	int ret = STATUS_EXEC_ERROR;
+
 	assert(resp_buf);
 
 	ret = at204_write2(ioif, p);

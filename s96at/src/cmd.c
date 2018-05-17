@@ -17,6 +17,7 @@
 uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr)
 {
 	uint8_t addr = 0x5;
+
 	if (slotnbr % 2)
 		slotnbr--;
 	slotnbr >>= 1;
@@ -39,8 +40,7 @@ void get_command(struct cmd_packet *p, uint8_t opcode)
 	p->data = NULL;
 	p->data_length = 0;
 
-	switch (p->opcode)
-	{
+	switch (p->opcode) {
 	case OPCODE_DERIVEKEY:
 		p->max_time = 62; /* Table 8.4 */
 		break;

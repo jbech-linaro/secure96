@@ -17,6 +17,7 @@
 bool crc_valid(const uint8_t *data, uint8_t *crc, size_t data_len)
 {
 	uint16_t buf_crc = 0;
+
 	buf_crc = calculate_crc16(data, data_len, 0);
 	hexdump("calculated CRC", &buf_crc, CRC_LEN);
 
