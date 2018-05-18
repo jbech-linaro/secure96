@@ -208,8 +208,8 @@ uint8_t s96at_get_hmac(struct s96at_desc *desc, uint8_t slot,
  * Reads the lock status of the Config Zone into lock_config.
  * Possible values are:
  *
- *  S96AT_LOCK_CONFIG_LOCKED
- *  S96AT_LOCK_CONFIG_UNLOCKED
+ *  S96AT_ZONE_LOCKED
+ *  S96AT_ZONE_UNLOCKED
  *
  * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
  */
@@ -220,8 +220,8 @@ uint8_t s96at_get_lock_config(struct s96at_desc *desc, uint8_t *lock_config);
  * Reads the lock status of the Data / OTP zone into lock_data.
  * Possible values are:
  *
- * S96AT_LOCK_DATA_LOCKED
- * S96AT_LOCK_DATA_UNLOCKED
+ * S96AT_ZONE_LOCKED
+ * S96AT_ZONE_UNLOCKED
  *
  * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
  */
@@ -409,7 +409,7 @@ uint8_t s96at_wake(struct s96at_desc *desc);
  * permitted before the zone is locked.
  *
  * The Data zone consists of 512 bytes divided into 16x 32-byte slots. The id
- * parameter specifies which slot to be write, in the range of 0-15. The buffer
+ * parameter specifies which slot to write, in the range of 0-15. The buffer
  * length must be S96AT_WRITE_DATA_LEN. Writing to the Data zone is allowed once
  * the Configuration zone has been locked, and before the Data zone has been locked.
  * After the Data zone is locked, writing to a slot depends on the permissions set
