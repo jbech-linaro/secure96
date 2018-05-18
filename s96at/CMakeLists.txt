@@ -1,6 +1,8 @@
 #set(CMAKE_TOOLCHAIN_FILE CMakeToolchain.txt)
 project(s96at C)
 
+include(GNUInstallDirs)
+
 # Required cmake version
 cmake_minimum_required(VERSION 3.0.2)
 
@@ -27,12 +29,17 @@ set(I2C_DEVICE "/dev/i2c-0")
 add_definitions(-DCMAKE_BUILD_TYPE=Debug)
 
 add_library(${PROJECT_NAME} SHARED ${SRC})
-set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER include/s96at.h)
+
+set(PUBLIC_HEADERS ${CMAKE_SOURCE_DIR}/include/s96at.h
+		   ${CMAKE_SOURCE_DIR}/include/s96at_private.h)
+set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
 target_compile_definitions(${PROJECT_NAME}
 	PRIVATE -DI2C_DEVICE="${I2C_DEVICE}"
 	PRIVATE -DDEBUG
 )
+install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/secure96)
 
 add_subdirectory(tests)
 add_custom_target(tests)
