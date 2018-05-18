@@ -9,6 +9,8 @@
 
 #include <s96at_private.h>
 
+#define S96AT_VERSION				PROJECT_VERSION
+
 #define S96AT_STATUS_OK				0x00
 #define S96AT_STATUS_CHECKMAC_FAIL		0x01
 #define S96AT_STATUS_EXEC_ERROR			0x0f
