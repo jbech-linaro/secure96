@@ -434,6 +434,9 @@ out:
 
 uint8_t s96at_lock_zone(struct s96at_desc *desc, enum s96at_zone zone, uint16_t crc)
 {
+	if (!crc)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
 	return cmd_lock_zone(desc->ioif, zone, &crc);
 }
 
