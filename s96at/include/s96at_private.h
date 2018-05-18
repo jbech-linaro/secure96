@@ -5,8 +5,6 @@
 #ifndef __S96AT_PRIVATE_H
 #define __S96AT_PRIVATE_H
 
-#include <io.h>
-
 struct s96at_desc {
 	uint8_t dev;
 	struct io_interface *ioif;

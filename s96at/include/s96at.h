@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-#include <s96at_private.h>
+#include "s96at_private.h"
 
 #define S96AT_VERSION				PROJECT_VERSION
 
