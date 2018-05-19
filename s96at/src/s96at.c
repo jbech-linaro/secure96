@@ -82,7 +82,7 @@ uint8_t s96at_pause(struct s96at_desc *desc, uint8_t selector)
 	return cmd_pause(desc->ioif, selector);
 }
 
-uint16_t s96at_get_crc(const uint8_t *buf, size_t buf_len, uint16_t current_crc)
+uint16_t s96at_crc(const uint8_t *buf, size_t buf_len, uint16_t current_crc)
 {
 	return calculate_crc16(buf, buf_len, current_crc);
 }
