@@ -493,6 +493,12 @@ uint8_t s96at_read(struct s96at_desc *desc, enum s96at_zone zone, uint8_t id,
 	return ret;
 }
 
+uint8_t s96at_update_extra(struct s96at_desc *desc, enum s96at_update_extra_mode mode,
+			   uint8_t val)
+{
+	return cmd_update_extra(desc->ioif, mode, val);
+}
+
 uint8_t s96at_write(struct s96at_desc *desc, enum s96at_zone zone, uint8_t id,
 		    uint32_t flags, const uint8_t *buf)
 {
