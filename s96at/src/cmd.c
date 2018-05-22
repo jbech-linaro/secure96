@@ -237,6 +237,8 @@ uint8_t cmd_lock_zone(struct io_interface *ioif, uint8_t zone,
 	 */
 	if (ret == STATUS_OK && resp_buf == LOCK_DATA_LOCKED)
 		logd("Successfully locked %s zone!\n", zone2str(zone));
+	else
+		ret = STATUS_EXEC_ERROR;
 out:
 	return ret;
 }
