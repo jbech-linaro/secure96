@@ -640,7 +640,7 @@ static int test_derivekey(void)
 	uint8_t ret;
 	uint8_t key_e[S96AT_KEY_LEN] = { 0 };
 
-	uint8_t slot = 6;
+	uint8_t slot = 3;
 
 	uint8_t mac_a[S96AT_MAC_LEN] = { 0 }; /* actual (atsha204a) */
 	uint8_t mac_e[S96AT_MAC_LEN] = { 0 }; /* expected (openssl) */
@@ -654,7 +654,7 @@ static int test_derivekey(void)
 		/* 1 byte: Opcode */
 		OPCODE_DERIVEKEY,
 		/* 1 byte: Param1 */
-		TEMPKEY_SOURCE_INPUT,
+		TEMPKEY_SOURCE_INPUT << 2,
 		/* 2 bytes: Param2[LSB], Param2[MSB] */
 		slot, 0x00,
 		/* 1 byte: SN[8] */
@@ -681,7 +681,7 @@ static int test_derivekey(void)
 		/* 1 byte: Opcode */
 		OPCODE_MAC,
 		/* 1 byte: Mode */
-		S96AT_MAC_MODE_0,
+		S96AT_MAC_MODE_0 | (TEMPKEY_SOURCE_INPUT << MAC_MODE_TEMPKEY_SOURCE_SHIFT),
 		/* 2 bytes: Param2[LSB], Param2[MSB] */
 		slot, 0x00,
 		/* 8 bytes: OTP[0:7] or zeros */
@@ -725,7 +725,7 @@ static int test_derivekey(void)
 	 * Bit 7: MBZ
 	 */
 	ret = s96at_get_mac(&desc, S96AT_MAC_MODE_0, slot, challenge,
-			    S96AT_FLAG_NONE, mac_a);
+			    S96AT_FLAG_TEMPKEY_SOURCE_INPUT, mac_a);
 	CHECK_RES("MAC (actual)", ret, mac_a, ARRAY_LEN(mac_a));
 
 	sha256(sha_in, ARRAY_LEN(sha_in), key_e);
@@ -806,6 +806,9 @@ static int test_reset(void)
 int main(int argc, char *argv[])
 {
 	uint8_t ret;
+	uint32_t tests_total = 0;
+	uint32_t tests_pass = 0;
+	uint32_t tests_fail = 0;
 
 	struct atsha204a_testcase tests[] = {
 		{"CheckMAC: Mode 0", test_checkmac_mode0},
@@ -858,8 +861,14 @@ int main(int argc, char *argv[])
 			s96at_idle(&desc);
 			while (s96at_wake(&desc) != S96AT_STATUS_READY) {};
 		}
+		if (ret)
+			tests_fail++;
+		else
+			tests_pass++;
+		tests_total++;
 	}
-	printf("Done\n");
+	printf("All done. Total: %d Passed: %d Failed: %d\n",
+	       tests_total, tests_pass, tests_fail);
 out:
 	ret = s96at_cleanup(&desc);
 	if (ret != S96AT_STATUS_OK)
