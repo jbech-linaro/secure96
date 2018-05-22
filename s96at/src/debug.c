@@ -12,7 +12,7 @@
 void hexdump(char *message, void *buf, size_t len)
 {
 	int i;
-	uint8_t *b = (uint8_t *)buf;
+	uint8_t __attribute__((unused)) *b = (uint8_t *)buf;
 
 	assert(message);
 	assert(buf);
