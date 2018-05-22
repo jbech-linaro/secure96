@@ -28,14 +28,8 @@
 #define S96AT_MAC_LEN				32
 #define S96AT_NONCE_INPUT_LEN			20
 #define S96AT_RANDOM_LEN			32
-#define S96AT_READ_CONFIG_LEN			4
-#define S96AT_READ_DATA_LEN			32
-#define S96AT_READ_OTP_LEN			4
 #define S96AT_SERIAL_NUMBER_LEN			9
 #define S96AT_SHA_LEN				32
-#define S96AT_WRITE_CONFIG_LEN			4
-#define S96AT_WRITE_DATA_LEN			32
-#define S96AT_WRITE_OTP_LEN			4
 #define S96AT_ZONE_CONFIG_LEN			88
 #define S96AT_ZONE_DATA_LEN			512
 #define S96AT_ZONE_OTP_LEN			64
@@ -372,30 +366,45 @@ uint8_t s96at_init(enum s96at_device device_type, enum s96at_io_interface_type i
  */
 uint8_t s96at_lock_zone(struct s96at_desc *desc, enum s96at_zone zone, uint16_t crc);
 
-/* Read from a zone
+/* Read from the Configuration zone
  *
- * The Config zone consists of 88 bytes divided into 22x 4-byte words. The id
- * parameter specifies which word to be read, in the range of 0-21. The buffer
- * length must be S96AT_READ_CONFIG_LEN. Reading from the Config zone is always
+ * The Config zone is organized into 4-byte words. The id parameter specifies
+ * which word to be read, in the range of 0-21. Reads can be of 4-byte words,
+ * or 32-byte blocks. The length parameter specifies the read length, and the
+ * buffer size must be set accordingly. Reading from the Config zone is always
  * permitted.
- *
- * The Data zone consists of 512 bytes divided into 16x 32-byte slots. The id
- * parameter specifies which slot to be read, in the range of 0-15. The buffer
- * length must be S96AT_READ_DATA_LEN. Reading is permitted only after the Data
- * zone has been locked. The permissions to read depends on the slot's configuration.
- * Reads from the Data zone can be encrypted if the EncryptedRead bit is set
- * in the slot's configuration. To perform an encrypted read, GenDig must be run
- * before reading data to set the encryption key.
- *
- * The OTP zone consists of 64 bytes divided into 16x 4-byte words. The id
- * parameter specifies which word to be read in the range of 0 - 15. The buffer
- * length must be S96AT_READ_OTP_LEN. Reading is permitted only after the OTP
- * zone has been locked. If the OTP zone is configured into Legacy mode, reading
- * from words 0 or 1 returns an error.
  *
  * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
  */
-uint8_t s96at_read(struct s96at_desc *desc, enum s96at_zone zone, uint8_t id, uint8_t *buf);
+uint8_t s96at_read_config(struct s96at_desc *desc, uint8_t id, uint8_t *buf,
+			  size_t length);
+
+/* Read from the Data zone
+ *
+ * The Data zone is organized into 32-byte slots. The id
+ * parameter specifies the slot to be read, in the range of 0-15. The buffer
+ * length must be 32 bytes. Reading is permitted only after the Data
+ * zone has been locked, and if the slot has been configured as such. Reads
+ * from the Data zone can be encrypted if the EncryptedRead bit is set in the
+ * slot's configuration. To perform an encrypted read, GenDig must be run before
+ * reading data, in order to set the encryption key.
+ *
+ * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ */
+uint8_t s96at_read_data(struct s96at_desc *desc, uint8_t id, uint8_t offset,
+			uint32_t flags, uint8_t *buf, size_t length);
+
+/* Read from the OTP zone
+ *
+ * The OTP zone is organized in 4-byte words. The id parameter specifies
+ * the word to be read in the range of 0 - 15. The buffer length must be
+ * 4 bytes. Reading is permitted only once the OTP zone has been locked.
+ * If the OTP zone is configured into Legacy mode, reading from words
+ * 0 or 1 returns an error.
+ *
+ * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ */
+uint8_t s96at_read_otp(struct s96at_desc *desc, uint8_t id, uint8_t *buf);
 
 /* Put the device into the sleep state
  *
@@ -452,32 +461,56 @@ uint8_t s96at_update_extra(struct s96at_desc *desc, enum s96at_update_extra_mode
  */
 uint8_t s96at_wake(struct s96at_desc *desc);
 
-/* Write to a zone
+/* Write to the Config zone
  *
- * The Config zone consists of 88 bytes divided into 22x 4-byte words. The id
- * parameter specifies which word to be written, in the range of 0-21. The buffer
- * length must be S96AT_WRITE_CONFIG_LEN. Writing to the Config zone is only
- * permitted before the zone is locked.
- *
- * The Data zone consists of 512 bytes divided into 16x 32-byte slots. The id
- * parameter specifies which slot to write, in the range of 0-15. The buffer
- * length must be S96AT_WRITE_DATA_LEN. Writing to the Data zone is allowed once
- * the Configuration zone has been locked, and before the Data zone has been locked.
- * After the Data zone is locked, writing to a slot depends on the permissions set
- * on the slot's configuration. Writes to the Data zone can be encrypted, if
- * S96AT_FLAG_ENCRYPT is set.
- *
- * The OTP zone consists of 64 bytes divided into 16x 4-byte words. The id
- * parameter specifies which word to be written, in the range of 0 - 15. The buffer
- * length must be S96AT_WRITE_OTP_LEN. Writing is permitted only after the Configuration
- * zone has been locked and before the OTP zone has been locked. NOTICE THAT WRITING
- * INTO THE OTP ZONE IS A ONE-TIME OPERATION. Once the OTP area has been locked, writing
- * is only permitted if the zone has been configured in Consumption mode, in which case
- * bits can only be changed from zero to one.
+ * The Config zone is organized into 4-byte words. The id parameter specifies
+ * which word to be written. Not all words are writable, and some words can
+ * only be updated using the UpdateExtra command. When writing to the
+ * Configuration zone, the buffer length is always 4 bytes. Writing to the
+ * Configuration zone is only permitted before the zone is locked.
  *
  * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
  */
-uint8_t s96at_write(struct s96at_desc *desc, enum s96at_zone zone, uint8_t id,
-		    uint32_t flags, const uint8_t *buf);
+uint8_t s96at_write_config(struct s96at_desc *desc, uint8_t id, const uint8_t *buf);
+
+/* Write to the Data zone
+ *
+ * The Data zone is organized in 32-byte slots. The id parameter specifies the
+ * slot to be written, in the range of 0-15. The default write length is 32 bytes.
+ * In this mode the value of the offset parameter must be zero. Programming the
+ * Data zone is allowed once the Configuration zone has been locked, and before
+ * the Data zone has been locked. Once the Data zone has been locked, writing to a
+ * slot depends on the permissions set on the slot's configuration. 4-byte writes
+ * allow updating part of a slot. When performing a 4-byte write, the offset
+ * parameter specifies the required word within the selected slot. 4-byte writes
+ * are allowed if the Data zone is locked and the corresponding slot has been
+ * configured as:
+ * - IsSecret = 0
+ * - WriteConfig = ALWAYS
+ * Writes to the Data zone can be encrypted if the slot has been configured
+ * accordingly and S96AT_FLAG_ENCRYPT is set. Encrypted writes can only be
+ * 32-byte long.
+ *
+ * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ */
+uint8_t s96at_write_data(struct s96at_desc *desc, uint8_t id, uint8_t offset,
+			 uint32_t flags, const uint8_t *buf, size_t length);
+
+/* Write to the OTP zone
+ *
+ * The OTP zone is organized in 4-byte words. The id parameter specifies the
+ * word to be written in the range of 0-15. Programming the OTP zone can be
+ * performed after the Configuration zone has been locked, and before the Data
+ * zone has been locked. At this stage, writing is performed in 32-byte blocks,
+ * so the id parameter should only be specified as 0 or 8. Once the Data zone
+ * has been locked, writing is only permitted if the zone has been configured in
+ * Consumption mode, in which case bits can only be changed from zero to one. At
+ * this stage, only 4-byte writes are allowed and id can take any value between
+ * 0 and 15.
+ *
+ * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ */
+uint8_t s96at_write_otp(struct s96at_desc *desc, uint8_t id, const uint8_t *buf,
+			size_t length);
 
 #endif
