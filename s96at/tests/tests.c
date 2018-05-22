@@ -745,9 +745,23 @@ static int test_read_config(void)
 {
 	uint8_t ret;
 	uint8_t id = 0;
-	uint8_t buf[S96AT_READ_CONFIG_LEN];
+	uint8_t length = 32;
+	uint8_t buf[32];
 
-	ret = s96at_read(&desc, S96AT_ZONE_CONFIG, id, buf);
+	ret = s96at_read_config(&desc, id, buf, length);
+	CHECK_RES("Value", ret, buf, ARRAY_LEN(buf));
+
+	return ret;
+}
+
+static int test_read_config_4byte(void)
+{
+	uint8_t ret;
+	uint8_t id = 0;
+	uint8_t length = 4;
+	uint8_t buf[4];
+
+	ret = s96at_read_config(&desc, id, buf, length);
 	CHECK_RES("Value", ret, buf, ARRAY_LEN(buf));
 
 	return ret;
@@ -757,7 +771,8 @@ static int test_read_data(void)
 {
 	uint8_t ret;
 	uint8_t id = 12;
-	uint8_t buf_a[S96AT_READ_DATA_LEN];
+	size_t length = 32;
+	uint8_t buf_a[32];
 	uint8_t buf_e[] = {
 		0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc,
 		0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc,
@@ -765,7 +780,22 @@ static int test_read_data(void)
 		0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc
 	};
 
-	ret = s96at_read(&desc, S96AT_ZONE_DATA, id, buf_a);
+	ret = s96at_read_data(&desc, id, 0, S96AT_FLAG_NONE, buf_a, length);
+	CHECK_RES("Value", ret, buf_a, ARRAY_LEN(buf_a));
+
+	return memcmp(buf_a, buf_e, ARRAY_LEN(buf_e));
+}
+
+static int test_read_data_4byte(void)
+{
+	uint8_t ret;
+	uint8_t id = 12;
+	uint8_t offset = 3;
+	size_t length = 4;
+	uint8_t buf_a[4];
+	uint8_t buf_e[] = {0xcc, 0xcc, 0xcc, 0xcc};
+
+	ret = s96at_read_data(&desc, id, offset, S96AT_FLAG_NONE, buf_a, length);
 	CHECK_RES("Value", ret, buf_a, ARRAY_LEN(buf_a));
 
 	return memcmp(buf_a, buf_e, ARRAY_LEN(buf_e));
@@ -774,13 +804,11 @@ static int test_read_data(void)
 static int test_read_otp(void)
 {
 	uint8_t ret;
-	uint8_t id = 1;
-	uint8_t buf_a[S96AT_READ_OTP_LEN];
-	uint8_t buf_e[] = {
-		0x11, 0x11, 0x11, 0x11
-	};
+	uint8_t id = 8;
+	uint8_t buf_a[4] = {0};
+	uint8_t buf_e[] = {0x88, 0x88, 0x88, 0x88};
 
-	ret = s96at_read(&desc, S96AT_ZONE_OTP, id, buf_a);
+	ret = s96at_read_otp(&desc, id, buf_a);
 	CHECK_RES("Value", ret, buf_a, ARRAY_LEN(buf_a));
 
 	return memcmp(buf_a, buf_e, ARRAY_LEN(buf_e));
@@ -825,8 +853,10 @@ int main(int argc, char *argv[])
 		{"Nonce: Mode Passthrough", test_nonce_passthrough},
 		{"Random: Update seed", test_random},
 		{"Random: No update seed", test_random_no_seed},
-		{"Read: Config", test_read_config},
-		{"Read: Data", test_read_data},
+		{"Read: Config (32 bytes)", test_read_config},
+		{"Read: Config (4 bytes)", test_read_config_4byte},
+		{"Read: Data (32 bytes)", test_read_data},
+		{"Read: Data (4 bytes)", test_read_data_4byte},
 		{"Read: OTP", test_read_otp},
 		{"Reset", test_reset},
 		{"SHA", test_sha},

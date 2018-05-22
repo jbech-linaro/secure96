@@ -457,36 +457,58 @@ uint8_t s96at_lock_zone(struct s96at_desc *desc, enum s96at_zone zone, uint16_t 
 	return cmd_lock_zone(desc->ioif, zone, &crc);
 }
 
-uint8_t s96at_read(struct s96at_desc *desc, enum s96at_zone zone, uint8_t id,
-		   uint8_t *buf)
+uint8_t s96at_read_config(struct s96at_desc *desc, uint8_t id, uint8_t *buf,
+			  size_t length)
+{
+	uint8_t ret;
+
+	if (id > ZONE_CONFIG_NUM_WORDS - 1)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	if (length != 32 && length != 4)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	ret = cmd_read(desc->ioif, ZONE_CONFIG, id, 0, length, buf, length);
+
+	if (ret != STATUS_OK)
+		memset(buf, 0, length);
+
+	return ret;
+}
+
+uint8_t s96at_read_data(struct s96at_desc *desc, uint8_t id, uint8_t offset,
+			uint32_t flags, uint8_t *buf, size_t length)
 {
 	uint8_t ret = STATUS_EXEC_ERROR;
 	uint8_t addr;
-	uint8_t length;
 
-	switch (zone) {
-	case S96AT_ZONE_CONFIG:
-		if (id > ZONE_CONFIG_NUM_WORDS - 1)
-			return S96AT_STATUS_BAD_PARAMETERS;
-		addr = id;
-		length = S96AT_READ_CONFIG_LEN;
-		break;
-	case S96AT_ZONE_DATA:
-		if (id > ZONE_DATA_NUM_SLOTS - 1)
-			return S96AT_STATUS_BAD_PARAMETERS;
-		addr = SLOT_ADDR(id);
-		length = S96AT_READ_DATA_LEN;
-		break;
-	case S96AT_ZONE_OTP:
-		if (id > ZONE_OTP_NUM_WORDS - 1)
-			return S96AT_STATUS_BAD_PARAMETERS;
-		addr = id;
-		length = S96AT_READ_OTP_LEN;
-		break;
-	}
+	if (id > ZONE_DATA_NUM_SLOTS - 1)
+		return S96AT_STATUS_BAD_PARAMETERS;
 
-	ret = cmd_read(desc->ioif, zone, addr, 0, length, buf, length);
+	if (length != 32 && length != 4)
+		return S96AT_STATUS_BAD_PARAMETERS;
 
+	if (length == 32 && offset)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	addr = SLOT_ADDR(id) + offset;
+
+	ret = cmd_read(desc->ioif, ZONE_DATA, addr, 0, length, buf, length);
+	if (ret != STATUS_OK)
+		memset(buf, 0, length);
+
+	return ret;
+}
+
+uint8_t s96at_read_otp(struct s96at_desc *desc, uint8_t id, uint8_t *buf)
+{
+	uint8_t ret;
+	uint8_t length = WORD_SIZE;
+
+	if (id > ZONE_OTP_NUM_WORDS - 1)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	ret = cmd_read(desc->ioif, ZONE_OTP, id, 0, length, buf, length);
 	if (ret != STATUS_OK)
 		memset(buf, 0, length);
 
@@ -499,37 +521,46 @@ uint8_t s96at_update_extra(struct s96at_desc *desc, enum s96at_update_extra_mode
 	return cmd_update_extra(desc->ioif, mode, val);
 }
 
-uint8_t s96at_write(struct s96at_desc *desc, enum s96at_zone zone, uint8_t id,
-		    uint32_t flags, const uint8_t *buf)
+uint8_t s96at_write_config(struct s96at_desc *desc, uint8_t id, const uint8_t *buf)
+{
+	if (id > ZONE_CONFIG_NUM_WORDS - 1)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	return cmd_write(desc->ioif, ZONE_CONFIG, id, false, buf, WORD_SIZE);
+}
+
+uint8_t s96at_write_data(struct s96at_desc *desc, uint8_t id, uint8_t offset,
+			 uint32_t flags, const uint8_t *buf, size_t length)
 {
 	uint8_t addr;
-	uint8_t length;
-	uint8_t encrypted  = false;
+	uint8_t encrypted = false;
 
-	switch (zone) {
-	case S96AT_ZONE_CONFIG:
-		if (id > ZONE_CONFIG_NUM_WORDS - 1)
-			return S96AT_STATUS_BAD_PARAMETERS;
-		addr = id;
-		length = S96AT_READ_CONFIG_LEN;
-		break;
-	case S96AT_ZONE_DATA:
-		if (id > ZONE_DATA_NUM_SLOTS - 1)
-			return S96AT_STATUS_BAD_PARAMETERS;
-		addr = SLOT_ADDR(id);
-		length = S96AT_READ_DATA_LEN;
-		break;
-	case S96AT_ZONE_OTP:
-		if (id > ZONE_OTP_NUM_WORDS - 1)
-			return S96AT_STATUS_BAD_PARAMETERS;
-		addr = id;
-		length = S96AT_READ_OTP_LEN;
-		break;
-	}
+	if (length != 32 && length != 4)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	if (id > ZONE_DATA_NUM_SLOTS - 1)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	addr = SLOT_ADDR(id) + offset;
 
 	if (flags & S96AT_FLAG_ENCRYPT)
 		encrypted = true;
 
-	return cmd_write(desc->ioif, zone, addr, encrypted, buf, length);
+	return cmd_write(desc->ioif, ZONE_DATA, addr, encrypted, buf, length);
+}
+
+uint8_t s96at_write_otp(struct s96at_desc *desc, uint8_t id, const uint8_t *buf,
+			size_t length)
+{
+	if (id > ZONE_OTP_NUM_WORDS - 1)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	if (length != 32 && length != 4)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	if (length == 32 && !(id == 0 || id == 8))
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	return cmd_write(desc->ioif, ZONE_OTP, id, false, buf, length);
 }
 
