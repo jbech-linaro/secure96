@@ -56,20 +56,31 @@ enum {
 #define SHA_MODE_INIT          0x00
 #define SHA_MODE_COMPUTE       0x01
 
-/* OP-codes for each command, see section 8.5.4 in spec */
-#define OPCODE_DERIVEKEY	0x1c
-#define OPCODE_DEVREV		0x30
-#define OPCODE_GENDIG		0x15
-#define OPCODE_HMAC		0x11
+/* OP-codes for each command
+ *
+ * Section 8.5.4 in the ATSHA204A spec
+ * Section 9.1.3 in the ATECC508A spec
+ */
 #define OPCODE_CHECKMAC		0x28
+#define OPCODE_COUNTER		0x24 /* ATECC508A */
+#define OPCODE_DERIVEKEY	0x1c
+#define OPCODE_DEVREV		0x30 /* ATSHA204A */
+#define OPCODE_ECDH		0x43 /* ATECC508A */
+#define OPCODE_GENDIG		0x15
+#define OPCODE_GENKEY		0x40 /* ATECC508A */
+#define OPCODE_HMAC		0x11
+#define OPCODE_INFO		0x30 /* ATECC508A */
 #define OPCODE_LOCK		0x17
 #define OPCODE_MAC		0x08
 #define OPCODE_NONCE		0x16
 #define OPCODE_PAUSE		0x01
+#define OPCODE_PRIV_WRITE	0x46 /* ATECC508A */
 #define OPCODE_RANDOM		0x1b
 #define OPCODE_READ		0x02
 #define OPCODE_SHA		0x47
+#define OPCODE_SIGN		0x41 /* ATECC508A */
 #define OPCODE_UPDATEEXTRA	0x20
+#define OPCODE_VERIFY		0x45 /* ATECC508A */
 #define OPCODE_WRITE		0x12
 
 /* Addresses etc for the configuration zone. */
