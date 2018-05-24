@@ -90,12 +90,12 @@ uint8_t s96at_derive_key(struct s96at_desc *desc, uint8_t slot, uint8_t *mac,
 	if (flags & S96AT_FLAG_TEMPKEY_SOURCE_RANDOM)
 		tempkey_source = (TEMPKEY_SOURCE_RANDOM << MAC_MODE_TEMPKEY_SOURCE_SHIFT);
 
-	return cmd_derive_key(desc->ioif, tempkey_source, slot, mac, len);
+	return cmd_derive_key(desc, tempkey_source, slot, mac, len);
 }
 
 uint8_t s96at_pause(struct s96at_desc *desc, uint8_t selector)
 {
-	return cmd_pause(desc->ioif, selector);
+	return cmd_pause(desc, selector);
 }
 
 uint16_t s96at_crc(const uint8_t *buf, size_t buf_len, uint16_t current_crc)
@@ -108,7 +108,7 @@ uint8_t s96at_get_random(struct s96at_desc *desc, enum s96at_random_mode mode,
 {
 	uint8_t ret;
 
-	ret = cmd_get_random(desc->ioif, mode, buf, S96AT_RANDOM_LEN);
+	ret = cmd_get_random(desc, mode, buf, S96AT_RANDOM_LEN);
 
 	if (ret != STATUS_OK)
 		memset(buf, 0, S96AT_RANDOM_LEN);
@@ -118,7 +118,7 @@ uint8_t s96at_get_random(struct s96at_desc *desc, enum s96at_random_mode mode,
 
 uint8_t s96at_get_devrev(struct s96at_desc *desc, uint8_t *buf)
 {
-	return cmd_get_devrev(desc->ioif, buf, S96AT_DEVREV_LEN);
+	return cmd_get_devrev(desc, buf, S96AT_DEVREV_LEN);
 }
 
 uint8_t s96at_gen_digest(struct s96at_desc *desc, enum s96at_zone zone,
@@ -131,7 +131,7 @@ uint8_t s96at_gen_digest(struct s96at_desc *desc, enum s96at_zone zone,
 	else
 		data_len = 0;
 
-	return cmd_gen_dig(desc->ioif, data, data_len, zone, slot);
+	return cmd_gen_dig(desc, data, data_len, zone, slot);
 }
 
 uint8_t s96at_gen_nonce(struct s96at_desc *desc, enum s96at_nonce_mode mode,
@@ -159,7 +159,7 @@ uint8_t s96at_gen_nonce(struct s96at_desc *desc, enum s96at_nonce_mode mode,
 		out_len = S96AT_RANDOM_LEN;
 	}
 
-	ret = cmd_get_nonce(desc->ioif, data, data_len, mode, out, out_len);
+	ret = cmd_get_nonce(desc, data, data_len, mode, out, out_len);
 
 	if (ret != STATUS_OK && random)
 		memset(random, 0, S96AT_RANDOM_LEN);
@@ -207,7 +207,7 @@ uint8_t s96at_get_mac(struct s96at_desc *desc, enum s96at_mac_mode mode, uint8_t
 	if (flags & S96AT_FLAG_USE_SN)
 		mode |= (1 << MAC_MODE_USE_SN_SHIFT);
 
-	ret = cmd_get_mac(desc->ioif, (uint8_t *)challenge, challenge_len, mode, slot,
+	ret = cmd_get_mac(desc, (uint8_t *)challenge, challenge_len, mode, slot,
 			  mac, S96AT_MAC_LEN);
 
 	if (ret != STATUS_OK)
@@ -281,7 +281,7 @@ uint8_t s96at_check_mac(struct s96at_desc *desc, enum s96at_mac_mode mode,
 		check_mac_data[76] = data->sn[3];
 	}
 
-	ret = cmd_check_mac(desc->ioif, check_mac_data, 77, mode, slot,
+	ret = cmd_check_mac(desc, check_mac_data, 77, mode, slot,
 			    &check_mac_resp, sizeof(check_mac_resp));
 	if (ret == STATUS_OK)
 		ret = check_mac_resp;
@@ -309,7 +309,7 @@ uint8_t s96at_get_hmac(struct s96at_desc *desc, uint8_t slot, uint32_t flags,
 	if (flags & S96AT_FLAG_USE_SN)
 		mode |= (1 << MAC_MODE_USE_SN_SHIFT);
 
-	return cmd_get_hmac(desc->ioif, mode, slot, hmac);
+	return cmd_get_hmac(desc, mode, slot, hmac);
 }
 
 uint8_t s96at_get_lock_config(struct s96at_desc *desc, uint8_t *lock_config)
@@ -317,7 +317,7 @@ uint8_t s96at_get_lock_config(struct s96at_desc *desc, uint8_t *lock_config)
 	uint8_t _lock_config;
 	int ret = STATUS_EXEC_ERROR;
 
-	ret = cmd_read(desc->ioif, ZONE_CONFIG, LOCK_CONFIG_ADDR, LOCK_CONFIG_OFFSET,
+	ret = cmd_read(desc, ZONE_CONFIG, LOCK_CONFIG_ADDR, LOCK_CONFIG_OFFSET,
 		       WORD_SIZE, &_lock_config, LOCK_CONFIG_SIZE);
 
 	if (ret == STATUS_OK)
@@ -333,7 +333,7 @@ uint8_t s96at_get_lock_data(struct s96at_desc *desc, uint8_t *lock_data)
 	uint8_t _lock_data = 0;
 	int ret = STATUS_EXEC_ERROR;
 
-	ret = cmd_read(desc->ioif, ZONE_CONFIG, LOCK_DATA_ADDR, LOCK_DATA_OFFSET,
+	ret = cmd_read(desc, ZONE_CONFIG, LOCK_DATA_ADDR, LOCK_DATA_OFFSET,
 		       WORD_SIZE, &_lock_data, LOCK_DATA_SIZE);
 
 	if (ret == STATUS_OK)
@@ -352,7 +352,7 @@ uint8_t s96at_get_otp_mode(struct s96at_desc *desc, uint8_t *otp_mode)
 	if (!otp_mode)
 		return ret;
 
-	ret = cmd_read(desc->ioif, ZONE_CONFIG, OTP_CONFIG_ADDR, OTP_CONFIG_OFFSET,
+	ret = cmd_read(desc, ZONE_CONFIG, OTP_CONFIG_ADDR, OTP_CONFIG_OFFSET,
 		       WORD_SIZE, &_otp_mode, OTP_CONFIG_SIZE);
 
 	*otp_mode = _otp_mode & 0xFF;
@@ -368,21 +368,21 @@ uint8_t s96at_get_serialnbr(struct s96at_desc *desc, uint8_t *buf)
 	if (!buf)
 		return S96AT_STATUS_BAD_PARAMETERS;
 
-	ret = cmd_read(desc->ioif, ZONE_CONFIG, SERIALNBR_ADDR0_3,
+	ret = cmd_read(desc, ZONE_CONFIG, SERIALNBR_ADDR0_3,
 		       SERIALNBR_OFFSET0_3, WORD_SIZE, serial_nbr,
 		       SERIALNBR_SIZE0_3);
 
 	if (ret != STATUS_OK)
 		goto err;
 
-	ret = cmd_read(desc->ioif, ZONE_CONFIG, SERIALNBR_ADDR4_7,
+	ret = cmd_read(desc, ZONE_CONFIG, SERIALNBR_ADDR4_7,
 		       SERIALNBR_OFFSET4_7, WORD_SIZE, serial_nbr +
 		       SERIALNBR_SIZE0_3, SERIALNBR_SIZE4_7);
 
 	if (ret != STATUS_OK)
 		goto err;
 
-	ret = cmd_read(desc->ioif, ZONE_CONFIG, SERIALNBR_ADDR8, SERIALNBR_OFFSET8,
+	ret = cmd_read(desc, ZONE_CONFIG, SERIALNBR_ADDR8, SERIALNBR_OFFSET8,
 		       WORD_SIZE, serial_nbr + SERIALNBR_SIZE0_3 + SERIALNBR_SIZE4_7,
 		       SERIALNBR_SIZE8);
 err:
@@ -404,7 +404,7 @@ uint8_t s96at_get_zone_config(struct s96at_desc *desc, uint8_t *buf)
 
 	/* Read word by word into the buffer */
 	for (i = 0; i < ZONE_CONFIG_SIZE / WORD_SIZE; i++) {
-		ret = cmd_read(desc->ioif, ZONE_CONFIG, i, 0, WORD_SIZE,
+		ret = cmd_read(desc, ZONE_CONFIG, i, 0, WORD_SIZE,
 			       buf + (i * WORD_SIZE), WORD_SIZE);
 		if (ret != STATUS_OK)
 			break;
@@ -434,13 +434,13 @@ uint8_t s96at_get_sha(struct s96at_desc *desc, uint8_t *buf,
 	if (ret != S96AT_STATUS_OK)
 		return ret;
 
-	ret = cmd_sha(desc->ioif, SHA_MODE_INIT, NULL, 0, &sha_resp,
+	ret = cmd_sha(desc, SHA_MODE_INIT, NULL, 0, &sha_resp,
 		      sizeof(sha_resp));
 	if (ret != STATUS_OK)
 		return ret;
 
 	for (i = 0; i < padded_msg_len / SHA_BLOCK_LEN; i++) {
-		ret = cmd_sha(desc->ioif, SHA_MODE_COMPUTE, buf + SHA_BLOCK_LEN * i,
+		ret = cmd_sha(desc, SHA_MODE_COMPUTE, buf + SHA_BLOCK_LEN * i,
 			      SHA_BLOCK_LEN, hash, S96AT_SHA_LEN);
 		if (ret != STATUS_OK)
 			goto out;
@@ -454,7 +454,7 @@ uint8_t s96at_lock_zone(struct s96at_desc *desc, enum s96at_zone zone, uint16_t 
 	if (!crc)
 		return S96AT_STATUS_BAD_PARAMETERS;
 
-	return cmd_lock_zone(desc->ioif, zone, &crc);
+	return cmd_lock_zone(desc, zone, &crc);
 }
 
 uint8_t s96at_read_config(struct s96at_desc *desc, uint8_t id, uint8_t *buf,
@@ -468,7 +468,7 @@ uint8_t s96at_read_config(struct s96at_desc *desc, uint8_t id, uint8_t *buf,
 	if (length != 32 && length != 4)
 		return S96AT_STATUS_BAD_PARAMETERS;
 
-	ret = cmd_read(desc->ioif, ZONE_CONFIG, id, 0, length, buf, length);
+	ret = cmd_read(desc, ZONE_CONFIG, id, 0, length, buf, length);
 
 	if (ret != STATUS_OK)
 		memset(buf, 0, length);
@@ -493,7 +493,7 @@ uint8_t s96at_read_data(struct s96at_desc *desc, uint8_t id, uint8_t offset,
 
 	addr = SLOT_ADDR(id) + offset;
 
-	ret = cmd_read(desc->ioif, ZONE_DATA, addr, 0, length, buf, length);
+	ret = cmd_read(desc, ZONE_DATA, addr, 0, length, buf, length);
 	if (ret != STATUS_OK)
 		memset(buf, 0, length);
 
@@ -508,7 +508,7 @@ uint8_t s96at_read_otp(struct s96at_desc *desc, uint8_t id, uint8_t *buf)
 	if (id > ZONE_OTP_NUM_WORDS - 1)
 		return S96AT_STATUS_BAD_PARAMETERS;
 
-	ret = cmd_read(desc->ioif, ZONE_OTP, id, 0, length, buf, length);
+	ret = cmd_read(desc, ZONE_OTP, id, 0, length, buf, length);
 	if (ret != STATUS_OK)
 		memset(buf, 0, length);
 
@@ -518,7 +518,7 @@ uint8_t s96at_read_otp(struct s96at_desc *desc, uint8_t id, uint8_t *buf)
 uint8_t s96at_update_extra(struct s96at_desc *desc, enum s96at_update_extra_mode mode,
 			   uint8_t val)
 {
-	return cmd_update_extra(desc->ioif, mode, val);
+	return cmd_update_extra(desc, mode, val);
 }
 
 uint8_t s96at_write_config(struct s96at_desc *desc, uint8_t id, const uint8_t *buf)
@@ -526,7 +526,7 @@ uint8_t s96at_write_config(struct s96at_desc *desc, uint8_t id, const uint8_t *b
 	if (id > ZONE_CONFIG_NUM_WORDS - 1)
 		return S96AT_STATUS_BAD_PARAMETERS;
 
-	return cmd_write(desc->ioif, ZONE_CONFIG, id, false, buf, WORD_SIZE);
+	return cmd_write(desc, ZONE_CONFIG, id, false, buf, WORD_SIZE);
 }
 
 uint8_t s96at_write_data(struct s96at_desc *desc, uint8_t id, uint8_t offset,
@@ -546,7 +546,7 @@ uint8_t s96at_write_data(struct s96at_desc *desc, uint8_t id, uint8_t offset,
 	if (flags & S96AT_FLAG_ENCRYPT)
 		encrypted = true;
 
-	return cmd_write(desc->ioif, ZONE_DATA, addr, encrypted, buf, length);
+	return cmd_write(desc, ZONE_DATA, addr, encrypted, buf, length);
 }
 
 uint8_t s96at_write_otp(struct s96at_desc *desc, uint8_t id, const uint8_t *buf,
@@ -561,6 +561,6 @@ uint8_t s96at_write_otp(struct s96at_desc *desc, uint8_t id, const uint8_t *buf,
 	if (length == 32 && !(id == 0 || id == 8))
 		return S96AT_STATUS_BAD_PARAMETERS;
 
-	return cmd_write(desc->ioif, ZONE_OTP, id, false, buf, length);
+	return cmd_write(desc, ZONE_OTP, id, false, buf, length);
 }
 

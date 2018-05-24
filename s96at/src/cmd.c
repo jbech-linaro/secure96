@@ -14,6 +14,8 @@
 #include <device.h>
 #include <packet.h>
 #include <status.h>
+#include <s96at.h>
+#include <s96at_private.h>
 
 uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr)
 {
@@ -25,85 +27,156 @@ uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr)
 	return addr + slotnbr;
 }
 
-/*
- * Initializes a command packet.
+/* atsha204a max execution times in ms
+ * See Table 8.4 in the atsha204a spec
  */
-void get_command(struct cmd_packet *p, uint8_t opcode)
+static uint8_t atsha204a_get_exec_time(uint8_t opcode)
 {
-	assert(p);
+	uint8_t max_time;
 
-	p->count = 0;
-	p->command = PKT_FUNC_COMMAND;
-	p->opcode = opcode;
-	p->param1 = 0;
-	p->param2[0] = 0;
-	p->param2[1] = 0;
-	p->data = NULL;
-	p->data_length = 0;
-
-	switch (p->opcode) {
+	switch (opcode) {
 	case OPCODE_DERIVEKEY:
-		p->max_time = 62; /* Table 8.4 */
+		max_time = 62;
 		break;
-
 	case OPCODE_DEVREV:
-		p->max_time = 2; /* Table 8.4 */
+		max_time = 2;
 		break;
-
 	case OPCODE_GENDIG:
-		p->max_time = 43; /* Table 8.4 */
+		max_time = 43;
 		break;
-
 	case OPCODE_HMAC:
-		p->max_time = 69; /* Table 8.4 */
+		max_time = 69;
 		break;
-
 	case OPCODE_CHECKMAC:
-		p->max_time = 38; /* Table 8.4 */
+		max_time = 38;
 		break;
-
 	case OPCODE_LOCK:
-		p->max_time = 24; /* Table 8.4 */
+		max_time = 24;
 		break;
-
 	case OPCODE_MAC:
-		p->max_time = 35; /* Table 8.4 */
+		max_time = 35;
 		break;
-
 	case OPCODE_NONCE:
-		p->max_time = 60; /* Table 8.4 */
+		max_time = 60;
 		break;
-
 	case OPCODE_PAUSE:
-		p->max_time = 2; /* Table 8.4 */
+		max_time = 2;
 		break;
-
 	case OPCODE_RANDOM:
-		p->max_time = 50; /* Table 8.4 */
+		max_time = 50;
 		break;
-
 	case OPCODE_READ:
-		p->max_time = 4; /* Table 8.4 */
+		max_time = 4;
 		break;
-
 	case OPCODE_SHA:
-		p->max_time = 22; /* Table 8.4 */
+		max_time = 22;
 		break;
-
 	case OPCODE_UPDATEEXTRA:
-		p->max_time = 8; /* Table 8.4 */
+		max_time = 8;
 		break;
-
 	case OPCODE_WRITE:
-		p->max_time = 20; /* Max is 42, lowered it to get better performance */
+		max_time = 20; /* Max is 42, lowered it to get better performance */
 		break;
-
 	default:
 		break;
 	}
+
+	return max_time;
 }
 
-uint8_t cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
+/* atecc508a max execution times in ms
+ * See Table 9.4 in the atecc508a spec
+ */
+static uint8_t atecc508a_get_exec_time(uint8_t opcode)
+{
+	uint8_t max_time;
+
+	switch (opcode) {
+	case OPCODE_CHECKMAC:
+		max_time = 13;
+		break;
+	case OPCODE_COUNTER:
+		max_time = 20;
+		break;
+	case OPCODE_DERIVEKEY:
+		max_time = 50;
+		break;
+	case OPCODE_ECDH:
+		max_time = 58;
+		break;
+	case OPCODE_GENDIG:
+		max_time = 11;
+		break;
+	case OPCODE_GENKEY:
+		max_time = 115;
+		break;
+	case OPCODE_HMAC:
+		max_time = 23;
+		break;
+	case OPCODE_INFO:
+		max_time = 1;
+		break;
+	case OPCODE_LOCK:
+		max_time = 32;
+		break;
+	case OPCODE_MAC:
+		max_time = 14;
+		break;
+	case OPCODE_NONCE:
+		max_time = 7;
+		break;
+	case OPCODE_PAUSE:
+		max_time = 3;
+		break;
+	case OPCODE_PRIV_WRITE:
+		max_time = 48;
+		break;
+	case OPCODE_RANDOM:
+		max_time = 23;
+		break;
+	case OPCODE_READ:
+		max_time = 1;
+		break;
+	case OPCODE_SHA:
+		max_time = 9;
+		break;
+	case OPCODE_SIGN:
+		max_time = 50;
+		break;
+	case OPCODE_UPDATEEXTRA:
+		max_time = 10;
+		break;
+	case OPCODE_VERIFY:
+		max_time = 58;
+		break;
+	case OPCODE_WRITE:
+		max_time = 26;
+		break;
+	default:
+		break;
+	}
+
+	return max_time;
+}
+
+/*
+ * Initializes a command packet.
+ */
+void get_command(uint8_t dev, struct cmd_packet *p, uint8_t opcode)
+{
+	assert(p);
+
+	memset(p, 0, sizeof(struct cmd_packet));
+	p->command = PKT_FUNC_COMMAND;
+	p->opcode = opcode;
+
+	if (dev == S96AT_ATSHA204A)
+		p->max_time = atsha204a_get_exec_time(opcode);
+	else
+		p->max_time = atecc508a_get_exec_time(opcode);
+}
+
+uint8_t cmd_read(struct s96at_desc *desc, uint8_t zone, uint8_t addr,
 		 uint8_t offset, size_t size, void *data, size_t data_size)
 {
 	int ret = STATUS_EXEC_ERROR;
@@ -113,7 +186,7 @@ uint8_t cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	assert(zone < ZONE_END);
 	assert(size == 4 || size == 32);
 
-	get_command(&p, OPCODE_READ);
+	get_command(desc->dev, &p, OPCODE_READ);
 
 	/*
 	 * Bit 7 should be '1' for 32 byte reads and always zero, when zone is
@@ -128,7 +201,7 @@ uint8_t cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	p.param2[0] = addr;
 	p.param2[1] = 0;
 
-	ret = at204_msg(ioif, &p, resp_buf, sizeof(resp_buf));
+	ret = at204_msg(desc->ioif, &p, resp_buf, sizeof(resp_buf));
 
 	if (ret == STATUS_OK)
 		memcpy(data, &resp_buf[offset], data_size);
@@ -138,50 +211,51 @@ uint8_t cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	return ret;
 }
 
-uint8_t cmd_derive_key(struct io_interface *ioif, uint8_t random, uint8_t slotnbr,
+uint8_t cmd_derive_key(struct s96at_desc *desc, uint8_t random, uint8_t slotnbr,
 		       uint8_t *buf, size_t size)
 {
 	uint8_t resp;
 	struct cmd_packet p;
 
-	get_command(&p, OPCODE_DERIVEKEY);
+	get_command(desc->dev, &p, OPCODE_DERIVEKEY);
 	p.param1 = random;
 	p.param2[0] = slotnbr & 0xff;
 	p.param2[1] = slotnbr >> 8;
 	p.data = buf;
 	p.data_length = size;
 
-	return at204_msg(ioif, &p, &resp, sizeof(resp));
+	return at204_msg(desc->ioif, &p, &resp, sizeof(resp));
 }
 
-uint8_t cmd_check_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
+uint8_t cmd_check_mac(struct s96at_desc *desc, uint8_t *in, size_t in_size,
 		      uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size)
 {
 	struct cmd_packet p;
 
-	get_command(&p, OPCODE_CHECKMAC);
+	get_command(desc->dev, &p, OPCODE_CHECKMAC);
 	p.param1 = mode;
 	p.param2[0] = slotnbr;
 	p.data = in;
 	p.data_length = in_size;
 
-	return at204_msg(ioif, &p, out, out_size);
+	return at204_msg(desc->ioif, &p, out, out_size);
 }
 
-uint8_t cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size)
+uint8_t cmd_get_devrev(struct s96at_desc *desc, uint8_t *buf, size_t size)
 {
 	struct cmd_packet p;
 
-	get_command(&p, OPCODE_DEVREV);
+	get_command(desc->dev, &p, OPCODE_DEVREV);
 
-	return at204_msg(ioif, &p, buf, size);
+	return at204_msg(desc->ioif, &p, buf, size);
 }
 
-uint8_t cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr, uint8_t *hmac)
+uint8_t cmd_get_hmac(struct s96at_desc *desc, uint8_t mode, uint16_t slotnbr,
+		     uint8_t *hmac)
 {
 	struct cmd_packet p;
 
-	get_command(&p, OPCODE_HMAC);
+	get_command(desc->dev, &p, OPCODE_HMAC);
 
 	p.param1 = mode;
 	/* Only the 4 least significant bits are used when determining
@@ -192,10 +266,10 @@ uint8_t cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr, 
 	p.param2[0] = slotnbr & 0xff;
 	p.param2[1] = slotnbr >> 8;
 
-	return at204_msg(ioif, &p, hmac, HMAC_LEN);
+	return at204_msg(desc->ioif, &p, hmac, HMAC_LEN);
 }
 
-uint8_t cmd_lock_zone(struct io_interface *ioif, uint8_t zone,
+uint8_t cmd_lock_zone(struct s96at_desc *desc, uint8_t zone,
 		      const uint16_t *expected_crc)
 {
 	int ret = STATUS_EXEC_ERROR;
@@ -205,7 +279,7 @@ uint8_t cmd_lock_zone(struct io_interface *ioif, uint8_t zone,
 	if (zone != ZONE_CONFIG && zone != ZONE_OTP && zone != ZONE_DATA)
 		goto out;
 
-	get_command(&p, OPCODE_LOCK);
+	get_command(desc->dev, &p, OPCODE_LOCK);
 
 	/* Zero for config and one for data and OTP. */
 	if (zone == ZONE_CONFIG)
@@ -229,7 +303,7 @@ uint8_t cmd_lock_zone(struct io_interface *ioif, uint8_t zone,
 
 	logd("Locking zone: %s with param1: 0x%02x, param2: 0x%02x 0x%02x\n",
 	     zone2str(zone), p.param1, p.param2[0], p.param2[1]);
-	ret = at204_msg(ioif, &p, &resp_buf, sizeof(resp_buf));
+	ret = at204_msg(desc->ioif, &p, &resp_buf, sizeof(resp_buf));
 
 	/*
 	 * Both data and config has the same value when locked, so here we just
@@ -243,13 +317,13 @@ out:
 	return ret;
 }
 
-uint8_t cmd_get_mac(struct io_interface *ioif, const uint8_t *in, size_t in_size,
+uint8_t cmd_get_mac(struct s96at_desc *desc, const uint8_t *in, size_t in_size,
 		    uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size)
 {
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
 
-	get_command(&p, OPCODE_MAC);
+	get_command(desc->dev, &p, OPCODE_MAC);
 
 	p.param1 = mode;
 	p.param2[0] = slotnbr & 0xff;
@@ -257,92 +331,92 @@ uint8_t cmd_get_mac(struct io_interface *ioif, const uint8_t *in, size_t in_size
 	p.data = in;
 	p.data_length = in_size;
 
-	ret = at204_msg(ioif, &p, out, out_size);
+	ret = at204_msg(desc->ioif, &p, out, out_size);
 
 	return ret;
 }
 
-uint8_t cmd_get_nonce(struct io_interface *ioif, const uint8_t *in, size_t in_size,
+uint8_t cmd_get_nonce(struct s96at_desc *desc, const uint8_t *in, size_t in_size,
 		      uint8_t mode, uint8_t *out, size_t out_size)
 {
 	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
 
-	get_command(&p, OPCODE_NONCE);
+	get_command(desc->dev, &p, OPCODE_NONCE);
 
 	p.param1 = mode;
 	p.data = in;
 	p.data_length = in_size;
 
-	ret = at204_msg(ioif, &p, out, out_size);
+	ret = at204_msg(desc->ioif, &p, out, out_size);
 
 	return ret;
 }
 
-uint8_t cmd_get_random(struct io_interface *ioif, uint8_t mode,
+uint8_t cmd_get_random(struct s96at_desc *desc, uint8_t mode,
 		       uint8_t *buf, size_t size)
 {
 	struct cmd_packet p;
 
-	get_command(&p, OPCODE_RANDOM);
+	get_command(desc->dev, &p, OPCODE_RANDOM);
 	p.param1 = mode;
 
-	return at204_msg(ioif, &p, buf, size);
+	return at204_msg(desc->ioif, &p, buf, size);
 }
 
-uint8_t cmd_gen_dig(struct io_interface *ioif, const uint8_t *in, size_t in_size,
+uint8_t cmd_gen_dig(struct s96at_desc *desc, const uint8_t *in, size_t in_size,
 		    uint8_t zone, uint16_t slotnbr)
 {
 	uint8_t resp;
 	struct cmd_packet p;
 
-	get_command(&p, OPCODE_GENDIG);
+	get_command(desc->dev, &p, OPCODE_GENDIG);
 	p.param1 = zone;
 	p.param2[0] = slotnbr & 0xff;
 	p.param2[1] = slotnbr >> 8;
 	p.data = in;
 	p.data_length = in_size;
 
-	return at204_msg(ioif, &p, &resp, sizeof(resp));
+	return at204_msg(desc->ioif, &p, &resp, sizeof(resp));
 }
 
-uint8_t cmd_pause(struct io_interface *ioif, uint8_t selector)
+uint8_t cmd_pause(struct s96at_desc *desc, uint8_t selector)
 {
 	struct cmd_packet p;
 	uint8_t resp_buf;
 
-	get_command(&p, OPCODE_PAUSE);
+	get_command(desc->dev, &p, OPCODE_PAUSE);
 	p.param1 = selector;
 
-	return at204_msg(ioif, &p, &resp_buf, 1);
+	return at204_msg(desc->ioif, &p, &resp_buf, 1);
 }
 
-uint8_t cmd_sha(struct io_interface *ioif, uint8_t mode, const uint8_t *in,
+uint8_t cmd_sha(struct s96at_desc *desc, uint8_t mode, const uint8_t *in,
 		size_t in_size, uint8_t *out, size_t out_size)
 {
 	struct cmd_packet p;
 
-	get_command(&p, OPCODE_SHA);
+	get_command(desc->dev, &p, OPCODE_SHA);
 	p.param1 = mode;
 	p.data = in;
 	p.data_length = in_size;
 
-	return at204_msg(ioif, &p, out, out_size);
+	return at204_msg(desc->ioif, &p, out, out_size);
 }
 
-uint8_t cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value)
+uint8_t cmd_update_extra(struct s96at_desc *desc, uint8_t mode, uint8_t value)
 {
 	uint8_t resp_buf;
 	struct cmd_packet p;
 
-	get_command(&p, OPCODE_UPDATEEXTRA);
+	get_command(desc->dev, &p, OPCODE_UPDATEEXTRA);
 	p.param1 = mode;
 	p.param2[0] = value;
 
-	return at204_msg(ioif, &p, &resp_buf, sizeof(resp_buf));
+	return at204_msg(desc->ioif, &p, &resp_buf, sizeof(resp_buf));
 }
 
-uint8_t cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
+uint8_t cmd_write(struct s96at_desc *desc, uint8_t zone, uint8_t addr,
 		  bool encrypted, const uint8_t *data, size_t size)
 {
 	uint8_t resp;
@@ -357,11 +431,11 @@ uint8_t cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
 	if (size == 32)
 		zone |= (1 << 7);
 
-	get_command(&p, OPCODE_WRITE);
+	get_command(desc->dev, &p, OPCODE_WRITE);
 	p.param1 = zone;
 	p.param2[0] = addr;
 	p.data = data;
 	p.data_length = size;
 
-	return at204_msg(ioif, &p, &resp, 1);
+	return at204_msg(desc->ioif, &p, &resp, 1);
 }

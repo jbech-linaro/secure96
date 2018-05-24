@@ -51,6 +51,7 @@
 
 enum s96at_device {
 	S96AT_ATSHA204A,
+	S96AT_ATECC508A
 };
 
 enum s96at_io_interface_type {

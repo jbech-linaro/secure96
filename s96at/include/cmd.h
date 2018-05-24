@@ -8,6 +8,7 @@
 #include <stdbool.h>
 
 #include <io.h>
+#include <s96at_private.h>
 
 /* Zone encoding, this is typically param1 */
 enum {
@@ -122,42 +123,42 @@ uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr);
 
 #define OTP_ADDR(addr) (4 * addr)
 
-uint8_t cmd_read(struct io_interface *ioif, uint8_t zone, uint8_t addr,
+uint8_t cmd_read(struct s96at_desc *desc, uint8_t zone, uint8_t addr,
 		 uint8_t offset, size_t size, void *data, size_t data_size);
 
-uint8_t cmd_derive_key(struct io_interface *ioif, uint8_t random, uint8_t slotnbr,
+uint8_t cmd_derive_key(struct s96at_desc *desc, uint8_t random, uint8_t slotnbr,
 		       uint8_t *buf, size_t size);
 
-uint8_t cmd_check_mac(struct io_interface *ioif, uint8_t *in, size_t in_size,
+uint8_t cmd_check_mac(struct s96at_desc *desc, uint8_t *in, size_t in_size,
 		      uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size);
 
-uint8_t cmd_get_devrev(struct io_interface *ioif, uint8_t *buf, size_t size);
+uint8_t cmd_get_devrev(struct s96at_desc *desc, uint8_t *buf, size_t size);
 
-uint8_t cmd_get_hmac(struct io_interface *ioif, uint8_t mode, uint16_t slotnbr,
+uint8_t cmd_get_hmac(struct s96at_desc *desc, uint8_t mode, uint16_t slotnbr,
 		     uint8_t *hmac);
 
-uint8_t cmd_lock_zone(struct io_interface *ioif, uint8_t zone,
+uint8_t cmd_lock_zone(struct s96at_desc *desc, uint8_t zone,
 		      const uint16_t *expected_crc);
 
-uint8_t cmd_get_mac(struct io_interface *ioif, const uint8_t *in, size_t in_size,
+uint8_t cmd_get_mac(struct s96at_desc *desc, const uint8_t *in, size_t in_size,
 		    uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size);
 
-uint8_t cmd_get_nonce(struct io_interface *ioif, const uint8_t *in, size_t in_size,
+uint8_t cmd_get_nonce(struct s96at_desc *desc, const uint8_t *in, size_t in_size,
 		      uint8_t mode, uint8_t *out, size_t out_size);
 
-uint8_t cmd_get_random(struct io_interface *ioif, uint8_t mode, uint8_t *buf,
+uint8_t cmd_get_random(struct s96at_desc *desc, uint8_t mode, uint8_t *buf,
 		       size_t size);
 
-uint8_t cmd_pause(struct io_interface *ioif, uint8_t selector);
+uint8_t cmd_pause(struct s96at_desc *desc, uint8_t selector);
 
-uint8_t cmd_sha(struct io_interface *ioif, uint8_t mode, const uint8_t *in,
+uint8_t cmd_sha(struct s96at_desc *desc, uint8_t mode, const uint8_t *in,
 		size_t in_size, uint8_t *out, size_t out_size);
 
-uint8_t cmd_update_extra(struct io_interface *ioif, uint8_t mode, uint8_t value);
+uint8_t cmd_update_extra(struct s96at_desc *desc, uint8_t mode, uint8_t value);
 
-uint8_t cmd_gen_dig(struct io_interface *ioif, const uint8_t *in, size_t in_size,
+uint8_t cmd_gen_dig(struct s96at_desc *desc, const uint8_t *in, size_t in_size,
 		    uint8_t zone, uint16_t slotnbr);
 
-uint8_t cmd_write(struct io_interface *ioif, uint8_t zone, uint8_t addr,
+uint8_t cmd_write(struct s96at_desc *desc, uint8_t zone, uint8_t addr,
 		  bool encrypted, const uint8_t *data, size_t size);
 #endif
