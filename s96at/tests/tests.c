@@ -25,6 +25,7 @@
 struct atsha204a_testcase {
 	char *name;
 	int (*func)(void);
+	uint8_t device;
 };
 
 static struct s96at_desc desc;
@@ -834,41 +835,74 @@ static int test_reset(void)
 int main(int argc, char *argv[])
 {
 	uint8_t ret;
+	uint8_t device;
+
 	uint32_t tests_total = 0;
 	uint32_t tests_pass = 0;
 	uint32_t tests_fail = 0;
 
 	struct atsha204a_testcase tests[] = {
-		{"CheckMAC: Mode 0", test_checkmac_mode0},
-		{"CheckMAC: Mode 1", test_checkmac_mode1},
-		{"CheckMAC: Mode 2", test_checkmac_mode2},
-		{"CheckMAC: Mode 3", test_checkmac_mode3},
-		{"DeriveKey", test_derivekey},
-		{"DevRev", test_devrev},
-		{"GenDig", test_gendig},
-		{"HMAC", test_hmac},
-		{"MAC: Mode 0", test_mac_mode0},
-		{"MAC: Mode 1", test_mac_mode1},
-		{"MAC: Mode 2", test_mac_mode2},
-		{"MAC: Mode 3", test_mac_mode3},
-		{"Nonce: Mode Random", test_nonce_random},
-		{"Nonce: Mode Random No Seed", test_nonce_random_no_seed},
-		{"Nonce: Mode Passthrough", test_nonce_passthrough},
-		{"Random: Update seed", test_random},
-		{"Random: No update seed", test_random_no_seed},
-		{"Read: Config (32 bytes)", test_read_config},
-		{"Read: Config (4 bytes)", test_read_config_4byte},
-		{"Read: Data (32 bytes)", test_read_data},
-		{"Read: Data (4 bytes)", test_read_data_4byte},
-		{"Read: OTP", test_read_otp},
-		{"Reset", test_reset},
-		{"SHA", test_sha},
+		{"CheckMAC: Mode 0", test_checkmac_mode0,
+		 S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"CheckMAC: Mode 1", test_checkmac_mode1,
+		 S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"CheckMAC: Mode 2", test_checkmac_mode2,
+		 S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"CheckMAC: Mode 3", test_checkmac_mode3,
+		 S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"DeriveKey", test_derivekey, S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"DevRev", test_devrev, S96AT_ATSHA204A},
+		{"GenDig", test_gendig, S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"HMAC", test_hmac, S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"MAC: Mode 0", test_mac_mode0, S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"MAC: Mode 1", test_mac_mode1, S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"MAC: Mode 2", test_mac_mode2, S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"MAC: Mode 3", test_mac_mode3, S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"Nonce: Mode Random", test_nonce_random,
+		 S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"Nonce: Mode Random No Seed", test_nonce_random_no_seed,
+		 S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"Nonce: Mode Passthrough", test_nonce_passthrough,
+		 S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"Random: Update seed", test_random, S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"Random: No update seed", test_random_no_seed,
+		 S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"Read: Config (32 bytes)", test_read_config,
+		 S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"Read: Config (4 bytes)", test_read_config_4byte,
+		 S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"Read: Data (32 bytes)", test_read_data,
+		  S96AT_ATSHA204A},
+		{"Read: Data (4 bytes)", test_read_data_4byte,
+		 S96AT_ATSHA204A},
+		{"Read: OTP", test_read_otp, S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"Reset", test_reset, S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"SHA", test_sha, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{0, NULL}
 	};
 
-	printf("ATSHA204A on %s @ addr 0x%x\n", I2C_DEVICE, ATSHA204A_ADDR);
+	if (argc != 2) {
+		printf("Usage: %s <device>\n", argv[0]);
+		printf("\n");
+		printf("Available devices:\n");
+		printf("atecc    atecc508a\n");
+		printf("atsha    atsha204a\n");
+		printf("\n");
+		return -1;
+	}
 
-	ret = s96at_init(S96AT_ATSHA204A, IO_I2C_LINUX, &desc);
+	if (!strcmp(argv[1], "atecc")) {
+		device = S96AT_ATECC508A;
+		printf("ATECC508A on %s @ addr 0x%x\n", I2C_DEVICE, ATECC508A_ADDR);
+	} else if (!strcmp(argv[1], "atsha")) {
+		device = S96AT_ATSHA204A;
+		printf("ATSHA204A on %s @ addr 0x%x\n", I2C_DEVICE, ATSHA204A_ADDR);
+	} else {
+		fprintf(stderr, "Bad device %s\n", argv[1]);
+		return -1;
+	}
+
+	ret = s96at_init(device, IO_I2C_LINUX, &desc);
 	if (ret != S96AT_STATUS_OK) {
 	    logd("Could not initialize the device\n");
 	    goto out;
@@ -879,6 +913,8 @@ int main(int argc, char *argv[])
 	logd("ATSHA204A is awake\n");
 
 	for (int i = 0 ; tests[i].func != NULL; i++) {
+		if (!(device & tests[i].device))
+			continue;
 		logd("\n - %s -\n", tests[i].name);
 		ret = tests[i].func();
 		printf("%-30s %s\n", tests[i].name,
@@ -903,6 +939,7 @@ out:
 	ret = s96at_cleanup(&desc);
 	if (ret != S96AT_STATUS_OK)
 		logd("Couldn't close the device\n");
+
 	return ret;
 }
 
