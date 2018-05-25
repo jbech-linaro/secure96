@@ -249,6 +249,20 @@ uint8_t cmd_hmac(struct s96at_desc *desc, uint8_t mode, uint16_t slotnbr, uint8_
 	return at204_msg(desc->ioif, &p, hmac, HMAC_LEN);
 }
 
+uint8_t cmd_info(struct s96at_desc *desc, uint8_t mode, uint16_t slotnbr,
+		 uint8_t *buf, size_t size)
+{
+	struct cmd_packet p;
+
+	get_command(desc->dev, &p, OPCODE_INFO);
+
+	p.param1 = mode;
+	p.param2[0] = slotnbr & 0xff;
+	p.param2[1] = slotnbr >> 8;
+
+	return at204_msg(desc->ioif, &p, buf, size);
+}
+
 uint8_t cmd_lock(struct s96at_desc *desc, uint8_t zone,
 		 const uint16_t *expected_crc)
 {

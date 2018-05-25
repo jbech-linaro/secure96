@@ -30,6 +30,7 @@
 #define S96AT_RANDOM_LEN			32
 #define S96AT_SERIAL_NUMBER_LEN			9
 #define S96AT_SHA_LEN				32
+#define S96AT_STATE_LEN				2
 #define S96AT_ZONE_CONFIG_LEN			88
 #define S96AT_ZONE_DATA_LEN			512
 #define S96AT_ZONE_OTP_LEN			64
@@ -42,12 +43,41 @@
 #define S96AT_FLAG_USE_SN			0x10
 #define S96AT_FLAG_ENCRYPT			0x12
 
+#define S96AT_KEY_INVALID			0x00
+#define S96AT_KEY_VALID				0x01
+
 #define	S96AT_ZONE_LOCKED			0x00
 #define S96AT_ZONE_UNLOCKED			0x55
 
 #define S96AT_OTP_MODE_LEGACY			0x00
 #define S96AT_OTP_MODE_CONSUMPTION		0x55
 #define S96AT_OTP_MODE_READONLY			0xAA
+
+/* s96at_get_state() 1st byte */
+#define S96AT_STATE_TEMPKEY_KEY_ID_SHIFT	0
+#define S96AT_STATE_TEMPKEY_SOURCE_FLAG_SHIFT	4
+#define S96AT_STATE_TEMPKEY_GEN_DIG_DATA_SHIFT	5
+#define S96AT_STATE_TEMPKEY_GEN_KEY_DATA_SHIFT	6
+#define S96AT_STATE_TEMPKEY_NO_MAC_FLAG_SHIFT	7
+
+#define S96AT_STATE_TEMPKEY_KEY_ID_MASK		0x0f
+#define S96AT_STATE_TEMPKEY_SOURCE_FLAG_MASK	0x10
+#define S96AT_STATE_TEMPKEY_GEN_DIG_DATA_MASK	0x20
+#define S96AT_STATE_TEMPKEY_GEN_KEY_DATA_MASK	0x40
+#define S96AT_STATE_TEMPKEY_NO_MAC_FLAG_MASK	0x80
+
+/* s96at_get_state() 2nd byte */
+#define S96AT_STATE_EEPROM_RNG_SHIFT		0
+#define S96AT_STATE_SRAM_RNG_SHIFT		1
+#define S96AT_STATE_AUTH_VALID_SHIFT		2
+#define S96AT_STATE_AUTH_KEY_ID_SHIFT		3
+#define S96AT_STATE_TEMPKEY_VALID_SHIFT		7
+
+#define S96AT_STATE_EEPROM_RNG_MASK		0x01
+#define S96AT_STATE_SRAM_RNG_MASK		0x02
+#define S96AT_STATE_AUTH_VALID_MASK		0x04
+#define S96AT_STATE_AUTH_KEY_ID_MASK		0x78
+#define S96AT_STATE_TEMPKEY_VALID_MASK		0x80
 
 enum s96at_device {
 	S96AT_ATSHA204A = 1,
@@ -206,6 +236,18 @@ uint8_t s96at_gen_digest(struct s96at_desc *desc, enum s96at_zone zone,
 uint8_t s96at_get_hmac(struct s96at_desc *desc, uint8_t slot,
 		       uint32_t flags, uint8_t *hmac);
 
+/* Get information on key validity
+ *
+ * Populates the valid parameter with a value signifying whether the value
+ * stored in the specified slot is a valid ECC private or public key. That
+ * value can be either S96AT_KEY_VALID or S96AT_KEY_INVALID. This command
+ * is only useful for slots configured with KeyType parameter that indicates
+ * an ECC key. For public keys, PubInfo must be 1.
+ *
+ * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ */
+uint8_t s96at_get_key_valid(struct s96at_desc *desc, uint8_t slot, uint8_t *valid);
+
 /* Get the lock status of the Config Zone
  *
  * Reads the lock status of the Config Zone into lock_config.
@@ -342,6 +384,25 @@ uint8_t s96at_get_serialnbr(struct s96at_desc *desc, uint8_t *serial);
  */
 uint8_t s96at_get_sha(struct s96at_desc *desc, uint8_t *buf,
 		      size_t buf_len, size_t msg_len, uint8_t *hash);
+
+/* Get dynamic state info (atecc508a only)
+ *
+ * Populates buf with dynamic state information. The buffer length is S96AT_STATE_LEN,
+ * ie 2 Bytes. The first byte contains the following information:
+ * - Byte[7]    TempKey.NoMacFlag
+ * - Byte[6]    TempKey.GenKeyData
+ * - Byte[5]    TempKey.GenDigData
+ * - Byte[4]    TempKey.SourceFlag
+ * - Byte[3:0]  TempKey.KeyID
+ * The second byte contains the following:
+ * - Byte[7]    TempKey.Valid
+ * - Byte[6:3]  AuthKeyID
+ * - Byte[1]    SRAM RNG
+ * - Byte[0]    EEPROM RNG
+ *
+ * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ */
+uint8_t s96at_get_state(struct s96at_desc *desc, uint8_t *buf);
 
 /* Initialize a device descriptor
  *

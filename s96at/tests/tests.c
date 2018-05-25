@@ -91,7 +91,10 @@ static int test_devrev(void)
 	ret = s96at_get_devrev(&desc, buf);
 	CHECK_RES("DevRev", ret, buf, ARRAY_LEN(buf));
 
-	return ret;
+	if (desc.dev == S96AT_ATECC508A)
+		return buf[2] == 0x50 ? S96AT_STATUS_OK : -1;
+	else
+		return buf[1] == 0x02 ? S96AT_STATUS_OK : -1;
 }
 
 static int test_nonce_random(void)
@@ -742,6 +745,30 @@ out:
 	return memcmp(mac_a, mac_e, S96AT_MAC_LEN);
 }
 
+static int test_key_valid_is_invalid(void)
+{
+	uint8_t ret;
+	uint8_t valid;
+	uint8_t slot = 10;
+
+	ret = s96at_get_key_valid(&desc, slot, &valid);
+	CHECK_RES("Valid", ret, &valid, sizeof(valid));
+
+	return valid == S96AT_KEY_INVALID ? 0 : -1;
+}
+
+static int test_key_valid_is_valid(void)
+{
+	uint8_t ret;
+	uint8_t valid;
+	uint8_t slot = 12;
+
+	ret = s96at_get_key_valid(&desc, slot, &valid);
+	CHECK_RES("Valid", ret, &valid, sizeof(valid));
+
+	return valid == S96AT_KEY_VALID ? 0 : -1;
+}
+
 static int test_read_config(void)
 {
 	uint8_t ret;
@@ -815,6 +842,25 @@ static int test_read_otp(void)
 	return memcmp(buf_a, buf_e, ARRAY_LEN(buf_e));
 }
 
+static int test_state(void)
+{
+	uint8_t ret = 1;
+	uint8_t state[S96AT_STATE_LEN] = {0};
+
+	ret = s96at_gen_nonce(&desc, S96AT_NONCE_MODE_PASSTHROUGH, challenge, NULL);
+	CHECK_RES("Nonce", ret, NULL, 0);
+
+	ret = s96at_get_state(&desc, state);
+	CHECK_RES("Value", ret, state, ARRAY_LEN(state));
+
+	if (state[0] & (TEMPKEY_SOURCE_INPUT << S96AT_STATE_TEMPKEY_SOURCE_FLAG_SHIFT) &&
+	    state[1] & (1 << S96AT_STATE_TEMPKEY_VALID_SHIFT |
+			1 << S96AT_STATE_EEPROM_RNG_SHIFT))
+		ret = S96AT_STATUS_OK;
+
+	return ret;
+}
+
 static int test_reset(void)
 {
 	uint8_t ret;
@@ -851,9 +897,11 @@ int main(int argc, char *argv[])
 		{"CheckMAC: Mode 3", test_checkmac_mode3,
 		 S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"DeriveKey", test_derivekey, S96AT_ATSHA204A | S96AT_ATECC508A},
-		{"DevRev", test_devrev, S96AT_ATSHA204A},
+		{"DevRev", test_devrev, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"GenDig", test_gendig, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"HMAC", test_hmac, S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"Key Valid: Valid", test_key_valid_is_valid, S96AT_ATECC508A},
+		{"Key Valid: Invalid", test_key_valid_is_invalid, S96AT_ATECC508A},
 		{"MAC: Mode 0", test_mac_mode0, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"MAC: Mode 1", test_mac_mode1, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"MAC: Mode 2", test_mac_mode2, S96AT_ATSHA204A | S96AT_ATECC508A},
@@ -878,6 +926,7 @@ int main(int argc, char *argv[])
 		{"Read: OTP", test_read_otp, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"Reset", test_reset, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"SHA", test_sha, S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"State", test_state, S96AT_ATECC508A},
 		{0, NULL}
 	};
 

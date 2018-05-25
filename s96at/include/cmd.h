@@ -40,10 +40,15 @@ enum {
 #define SERIALNUM_LEN		9
 #define MAC_LEN			32
 #define SHA_LEN			32
+#define INFO_LEN		4
 
 #define WORD_SIZE		4
 #define MAX_READ_SIZE		32 /* bytes */
 #define MAX_WRITE_SIZE		32
+
+#define INFO_MODE_REVISION	0x00
+#define INFO_MODE_KEY_VALID	0x01
+#define INFO_MODE_STATE		0x02
 
 #define MAC_MODE_TEMPKEY_SOURCE_SHIFT  2
 #define MAC_MODE_USE_OTP_88_BITS_SHIFT 4
@@ -136,6 +141,9 @@ uint8_t cmd_gen_dig(struct s96at_desc *desc, const uint8_t *in, size_t in_size,
 
 uint8_t cmd_hmac(struct s96at_desc *desc, uint8_t mode, uint16_t slotnbr,
 		 uint8_t *hmac);
+
+uint8_t cmd_info(struct s96at_desc *desc, uint8_t mode, uint16_t slotnbr,
+		 uint8_t *buf, size_t size);
 
 uint8_t cmd_lock(struct s96at_desc *desc, uint8_t zone,
 		 const uint16_t *expected_crc);
