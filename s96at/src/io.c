@@ -7,26 +7,41 @@
 #include <unistd.h>
 
 #include <crc.h>
+#include <device.h>
 #include <debug.h>
 #include <io.h>
+#include <i2c_linux.h>
 #include <packet.h>
+#include <s96at.h>
 #include <status.h>
 
-extern struct io_interface i2c_linux;
+extern struct io_interface_ops i2c_linux_ops;
 
-uint32_t register_io_interface(uint8_t io_interface_type,
+uint32_t register_io_interface(uint8_t device_type, uint8_t io_interface_type,
 			       struct io_interface **ioif)
 {
+	uint8_t ret = STATUS_OK;
 	switch (io_interface_type) {
-	case 0:
-		*ioif = (struct io_interface *)&i2c_linux;
-		break;
+	case IO_I2C_LINUX:
+		*ioif = (struct io_interface *)malloc(sizeof(struct io_interface));
+		(*ioif)->open = i2c_linux_ops.open;
+		(*ioif)->write = i2c_linux_ops.write;
+		(*ioif)->read = i2c_linux_ops.read;
+		(*ioif)->close = i2c_linux_ops.close;
+		(*ioif)->wake = i2c_linux_ops.wake;
 
+		(*ioif)->ctx = malloc(sizeof(struct i2c_linux_ctx));
+		if (device_type == S96AT_ATECC508A)
+			((struct i2c_linux_ctx *)(*ioif)->ctx)->addr = ATECC508A_ADDR;
+		else
+			((struct i2c_linux_ctx *)(*ioif)->ctx)->addr = ATSHA204A_ADDR;
+		break;
 	default:
 		logd("Unknown IO interface\n");
+		ret = STATUS_EXEC_ERROR;
 	}
 
-	return STATUS_OK;
+	return ret;
 }
 
 int at204_open(struct io_interface *ioif)

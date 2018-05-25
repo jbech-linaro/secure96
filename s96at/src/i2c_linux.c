@@ -24,7 +24,7 @@ static uint32_t i2c_linux_open(void *ctx)
 		return STATUS_EXEC_ERROR;
 	}
 
-	if (ioctl(ictx->fd, I2C_SLAVE, ATSHA204A_ADDR) < 0) {
+	if (ioctl(ictx->fd, I2C_SLAVE, ictx->addr) < 0) {
 		logd("Couldn't talk to the slave\n");
 		return STATUS_EXEC_ERROR;
 	}
@@ -91,10 +91,7 @@ static uint32_t i2c_linux_wake(void *ctx)
 	return STATUS_OK;
 }
 
-static struct i2c_linux_ctx i2c_ctx;
-
-struct io_interface i2c_linux = {
-	.ctx = &i2c_ctx,
+struct io_interface_ops i2c_linux_ops = {
 	.open = i2c_linux_open,
 	.write = i2c_linux_write,
 	.read = i2c_linux_read,
