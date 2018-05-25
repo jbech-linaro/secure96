@@ -108,7 +108,7 @@ uint8_t s96at_get_random(struct s96at_desc *desc, enum s96at_random_mode mode,
 {
 	uint8_t ret;
 
-	ret = cmd_get_random(desc, mode, buf, S96AT_RANDOM_LEN);
+	ret = cmd_random(desc, mode, buf, S96AT_RANDOM_LEN);
 
 	if (ret != STATUS_OK)
 		memset(buf, 0, S96AT_RANDOM_LEN);
@@ -118,7 +118,7 @@ uint8_t s96at_get_random(struct s96at_desc *desc, enum s96at_random_mode mode,
 
 uint8_t s96at_get_devrev(struct s96at_desc *desc, uint8_t *buf)
 {
-	return cmd_get_devrev(desc, buf, S96AT_DEVREV_LEN);
+	return cmd_devrev(desc, buf, S96AT_DEVREV_LEN);
 }
 
 uint8_t s96at_gen_digest(struct s96at_desc *desc, enum s96at_zone zone,
@@ -159,7 +159,7 @@ uint8_t s96at_gen_nonce(struct s96at_desc *desc, enum s96at_nonce_mode mode,
 		out_len = S96AT_RANDOM_LEN;
 	}
 
-	ret = cmd_get_nonce(desc, data, data_len, mode, out, out_len);
+	ret = cmd_nonce(desc, data, data_len, mode, out, out_len);
 
 	if (ret != STATUS_OK && random)
 		memset(random, 0, S96AT_RANDOM_LEN);
@@ -207,8 +207,8 @@ uint8_t s96at_get_mac(struct s96at_desc *desc, enum s96at_mac_mode mode, uint8_t
 	if (flags & S96AT_FLAG_USE_SN)
 		mode |= (1 << MAC_MODE_USE_SN_SHIFT);
 
-	ret = cmd_get_mac(desc, (uint8_t *)challenge, challenge_len, mode, slot,
-			  mac, S96AT_MAC_LEN);
+	ret = cmd_mac(desc, (uint8_t *)challenge, challenge_len, mode, slot,
+		      mac, S96AT_MAC_LEN);
 
 	if (ret != STATUS_OK)
 		memset(mac, 0, S96AT_MAC_LEN);
@@ -309,7 +309,7 @@ uint8_t s96at_get_hmac(struct s96at_desc *desc, uint8_t slot, uint32_t flags,
 	if (flags & S96AT_FLAG_USE_SN)
 		mode |= (1 << MAC_MODE_USE_SN_SHIFT);
 
-	return cmd_get_hmac(desc, mode, slot, hmac);
+	return cmd_hmac(desc, mode, slot, hmac);
 }
 
 uint8_t s96at_get_lock_config(struct s96at_desc *desc, uint8_t *lock_config)
@@ -454,7 +454,7 @@ uint8_t s96at_lock_zone(struct s96at_desc *desc, enum s96at_zone zone, uint16_t 
 	if (!crc)
 		return S96AT_STATUS_BAD_PARAMETERS;
 
-	return cmd_lock_zone(desc, zone, &crc);
+	return cmd_lock(desc, zone, &crc);
 }
 
 uint8_t s96at_read_config(struct s96at_desc *desc, uint8_t id, uint8_t *buf,
