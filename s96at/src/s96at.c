@@ -118,7 +118,14 @@ uint8_t s96at_get_random(struct s96at_desc *desc, enum s96at_random_mode mode,
 
 uint8_t s96at_get_devrev(struct s96at_desc *desc, uint8_t *buf)
 {
-	return cmd_devrev(desc, buf, S96AT_DEVREV_LEN);
+	uint8_t ret;
+
+	if (desc->dev == S96AT_ATECC508A)
+		ret = cmd_info(desc, INFO_MODE_REVISION, 0, buf, INFO_LEN);
+	else
+		ret = cmd_devrev(desc, buf, DEVREV_LEN);
+
+	return ret;
 }
 
 uint8_t s96at_gen_digest(struct s96at_desc *desc, enum s96at_zone zone,
@@ -312,6 +319,20 @@ uint8_t s96at_get_hmac(struct s96at_desc *desc, uint8_t slot, uint32_t flags,
 	return cmd_hmac(desc, mode, slot, hmac);
 }
 
+uint8_t s96at_get_key_valid(struct s96at_desc *desc, uint8_t slot, uint8_t *valid)
+{
+	uint8_t ret;
+	uint8_t resp_buf[INFO_LEN] = {0};
+
+	ret = cmd_info(desc, INFO_MODE_KEY_VALID, slot, resp_buf, INFO_LEN);
+	if (ret == STATUS_OK)
+		*valid = resp_buf[0];
+	else
+		*valid = S96AT_KEY_INVALID;
+
+	return ret;
+}
+
 uint8_t s96at_get_lock_config(struct s96at_desc *desc, uint8_t *lock_config)
 {
 	uint8_t _lock_config;
@@ -390,6 +411,20 @@ err:
 		memcpy(buf, serial_nbr, S96AT_SERIAL_NUMBER_LEN);
 	else
 		memset(buf, 0, S96AT_SERIAL_NUMBER_LEN);
+
+	return ret;
+}
+
+uint8_t s96at_get_state(struct s96at_desc *desc, uint8_t *buf)
+{
+	uint8_t ret;
+	uint8_t resp_buf[INFO_LEN] = {0};
+
+	ret = cmd_info(desc, INFO_MODE_STATE, 0, resp_buf, INFO_LEN);
+	if (ret == STATUS_OK)
+		memcpy(buf, resp_buf, S96AT_STATE_LEN);
+	else
+		memset(buf, 0, S96AT_STATE_LEN);
 
 	return ret;
 }
