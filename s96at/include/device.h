@@ -7,7 +7,8 @@
 
 #include <io.h>
 
-/* Default I2C address for the ATSHA204a */
+/* Default I2C address */
+#define ATECC508A_ADDR 0x60
 #define ATSHA204A_ADDR 0x64
 
 /* Word address values */

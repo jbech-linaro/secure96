@@ -19,7 +19,7 @@ uint8_t s96at_init(enum s96at_device device, enum s96at_io_interface_type iface,
 
 	desc->dev = device;
 
-	ret = register_io_interface(IO_I2C_LINUX, &desc->ioif);
+	ret = register_io_interface(device, IO_I2C_LINUX, &desc->ioif);
 	if (ret != STATUS_OK)
 		return ret;
 
