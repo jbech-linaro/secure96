@@ -511,24 +511,24 @@ uint8_t s96at_read_config(struct s96at_desc *desc, uint8_t id, uint8_t *buf,
 	return ret;
 }
 
-uint8_t s96at_read_data(struct s96at_desc *desc, uint8_t id, uint8_t offset,
+uint8_t s96at_read_data(struct s96at_desc *desc, struct s96at_slot_addr *addr,
 			uint32_t flags, uint8_t *buf, size_t length)
 {
 	uint8_t ret = STATUS_EXEC_ERROR;
-	uint8_t addr;
+	uint8_t _addr;
 
-	if (id > ZONE_DATA_NUM_SLOTS - 1)
+	if (addr->slot > ZONE_DATA_NUM_SLOTS - 1)
 		return S96AT_STATUS_BAD_PARAMETERS;
 
 	if (length != 32 && length != 4)
 		return S96AT_STATUS_BAD_PARAMETERS;
 
-	if (length == 32 && offset)
+	if (length == 32 && addr->offset)
 		return S96AT_STATUS_BAD_PARAMETERS;
 
-	addr = SLOT_ADDR(id) + offset;
+	_addr = SLOT_ADDR(addr->slot, addr->block, addr->offset);
 
-	ret = cmd_read(desc, ZONE_DATA, addr, 0, length, buf, length);
+	ret = cmd_read(desc, ZONE_DATA, _addr, 0, length, buf, length);
 	if (ret != STATUS_OK)
 		memset(buf, 0, length);
 
@@ -564,24 +564,24 @@ uint8_t s96at_write_config(struct s96at_desc *desc, uint8_t id, const uint8_t *b
 	return cmd_write(desc, ZONE_CONFIG, id, false, buf, WORD_SIZE);
 }
 
-uint8_t s96at_write_data(struct s96at_desc *desc, uint8_t id, uint8_t offset,
+uint8_t s96at_write_data(struct s96at_desc *desc, struct s96at_slot_addr *addr,
 			 uint32_t flags, const uint8_t *buf, size_t length)
 {
-	uint8_t addr;
+	uint16_t _addr;
 	uint8_t encrypted = false;
 
 	if (length != 32 && length != 4)
 		return S96AT_STATUS_BAD_PARAMETERS;
 
-	if (id > ZONE_DATA_NUM_SLOTS - 1)
+	if (addr->slot > ZONE_DATA_NUM_SLOTS - 1)
 		return S96AT_STATUS_BAD_PARAMETERS;
 
-	addr = SLOT_ADDR(id) + offset;
+	_addr = SLOT_ADDR(addr->slot, addr->block, addr->offset);
 
 	if (flags & S96AT_FLAG_ENCRYPT)
 		encrypted = true;
 
-	return cmd_write(desc, ZONE_DATA, addr, encrypted, buf, length);
+	return cmd_write(desc, ZONE_DATA, _addr, encrypted, buf, length);
 }
 
 uint8_t s96at_write_otp(struct s96at_desc *desc, uint8_t id, const uint8_t *buf,

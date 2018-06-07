@@ -368,7 +368,7 @@ uint8_t cmd_random(struct s96at_desc *desc, uint8_t mode, uint8_t *buf, size_t s
 	return at204_msg(desc->ioif, &p, buf, size);
 }
 
-uint8_t cmd_read(struct s96at_desc *desc, uint8_t zone, uint8_t addr,
+uint8_t cmd_read(struct s96at_desc *desc, uint8_t zone, uint16_t addr,
 		 uint8_t offset, size_t size, void *data, size_t data_size)
 {
 	int ret = STATUS_EXEC_ERROR;
@@ -391,8 +391,8 @@ uint8_t cmd_read(struct s96at_desc *desc, uint8_t zone, uint8_t addr,
 		_zone |= (1 << 7);
 
 	p.param1 = _zone;
-	p.param2[0] = addr;
-	p.param2[1] = 0;
+	p.param2[0] = addr & 0xff;
+	p.param2[1] = addr >> 8;
 
 	ret = at204_msg(desc->ioif, &p, resp_buf, sizeof(resp_buf));
 
@@ -429,7 +429,7 @@ uint8_t cmd_update_extra(struct s96at_desc *desc, uint8_t mode, uint8_t value)
 	return at204_msg(desc->ioif, &p, &resp_buf, sizeof(resp_buf));
 }
 
-uint8_t cmd_write(struct s96at_desc *desc, uint8_t zone, uint8_t addr,
+uint8_t cmd_write(struct s96at_desc *desc, uint8_t zone, uint16_t addr,
 		  bool encrypted, const uint8_t *data, size_t size)
 {
 	uint8_t resp;
@@ -446,7 +446,8 @@ uint8_t cmd_write(struct s96at_desc *desc, uint8_t zone, uint8_t addr,
 
 	get_command(desc->dev, &p, OPCODE_WRITE);
 	p.param1 = zone;
-	p.param2[0] = addr;
+	p.param2[0] = addr & 0xff;
+	p.param2[1] = addr >> 8;
 	p.data = data;
 	p.data_length = size;
 

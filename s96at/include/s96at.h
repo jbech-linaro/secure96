@@ -94,6 +94,13 @@ enum s96at_zone {
 	S96AT_ZONE_DATA
 };
 
+/* See Table 9.6 in atecc508a spec */
+struct s96at_slot_addr {
+	uint8_t slot;
+	uint8_t block;
+	uint8_t offset;
+};
+
 struct s96at_check_mac_data {
 	const uint8_t *challenge;
 	uint8_t slot;
@@ -443,17 +450,27 @@ uint8_t s96at_read_config(struct s96at_desc *desc, uint8_t id, uint8_t *buf,
 
 /* Read from the Data zone
  *
- * The Data zone is organized into 32-byte slots. The id
- * parameter specifies the slot to be read, in the range of 0-15. The buffer
- * length must be 32 bytes. Reading is permitted only after the Data
- * zone has been locked, and if the slot has been configured as such. Reads
- * from the Data zone can be encrypted if the EncryptedRead bit is set in the
+ * Reading from a slot is permitted only after the Data zone has been locked,
+ * and only if that slot has been configured as such, ie the isSecret bit is
+ * zero.
+ *
+ * In atsha204a, the Data zone is organized in 32-byte slots. The slot to be read
+ * is defined by the slot element of the addr parameter, in the range of 0-15. The
+ * remaining elements of the addr structure must be zero. The default write length
+ * is 32 bytes.
+ *
+ * In atecc508a, the Data zone slots are of various lengths. Reads are still performed
+ * in multiples of 32-byte blocks. The part of the slot to be read is defined by
+ * the slot and block elements of the addr parameter. Valid ranges depend on the slot.
+ * See Table 9.7 in the atecc508a specification.
+ *
+ * Reads from the Data zone can be encrypted if the EncryptedRead bit is set in the
  * slot's configuration. To perform an encrypted read, GenDig must be run before
  * reading data, in order to set the encryption key.
  *
  * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
  */
-uint8_t s96at_read_data(struct s96at_desc *desc, uint8_t id, uint8_t offset,
+uint8_t s96at_read_data(struct s96at_desc *desc, struct s96at_slot_addr *addr,
 			uint32_t flags, uint8_t *buf, size_t length);
 
 /* Read from the OTP zone
@@ -537,25 +554,34 @@ uint8_t s96at_write_config(struct s96at_desc *desc, uint8_t id, const uint8_t *b
 
 /* Write to the Data zone
  *
- * The Data zone is organized in 32-byte slots. The id parameter specifies the
- * slot to be written, in the range of 0-15. The default write length is 32 bytes.
- * In this mode the value of the offset parameter must be zero. Programming the
- * Data zone is allowed once the Configuration zone has been locked, and before
- * the Data zone has been locked. Once the Data zone has been locked, writing to a
- * slot depends on the permissions set on the slot's configuration. 4-byte writes
- * allow updating part of a slot. When performing a 4-byte write, the offset
- * parameter specifies the required word within the selected slot. 4-byte writes
- * are allowed if the Data zone is locked and the corresponding slot has been
- * configured as:
+ * Programming the Data zone is allowed once the Configuration zone has been locked,
+ * and before the Data zone has been locked. Once the Data zone has been locked, writing
+ * to a slot depends on the permissions set on the slot's configuration.
+ *
+ * In atsha204a, the Data zone is organized in 32-byte slots. The slot to be written
+ * is defined by the slot element of the addr parameter, in the range of 0-15. The
+ * remaining elements of the addr structure must be zero. The default write length
+ * is 32 bytes.
+ *
+ * In atecc508a, the Data zone slots are of various lengths. Writes are still performed
+ * in multiples of 32-byte blocks. The part of the slot to be written is defined by
+ * the slot and block elements of the addr parameter. Valid ranges depend on the slot.
+ * See Table 9.7 in the atecc508a specification.
+ *
+ * 4-byte writes allow updating part of a slot. When performing a 4-byte write, the
+ * offset element of the addr parameter specifies the required word within the selected
+ * slot. 4-byte writes are allowed if the Data zone is locked and the corresponding slot
+ * has been configured as:
  * - IsSecret = 0
  * - WriteConfig = ALWAYS
+ *
  * Writes to the Data zone can be encrypted if the slot has been configured
  * accordingly and S96AT_FLAG_ENCRYPT is set. Encrypted writes can only be
  * 32-byte long.
  *
  * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
  */
-uint8_t s96at_write_data(struct s96at_desc *desc, uint8_t id, uint8_t offset,
+uint8_t s96at_write_data(struct s96at_desc *desc, struct s96at_slot_addr *addr,
 			 uint32_t flags, const uint8_t *buf, size_t length);
 
 /* Write to the OTP zone
