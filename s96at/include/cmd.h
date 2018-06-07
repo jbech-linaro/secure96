@@ -122,7 +122,7 @@ uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr);
 
 #define SLOT_DATA_SIZE         32
 
-#define SLOT_ADDR(id) (8 * id)
+#define SLOT_ADDR(slot, block, offset) (block << 8 | slot << 3 | offset)
 #define SLOT_CONFIG_OFFSET(slotnbr) (slotnbr % 2 ? 2 : 0)
 #define SLOT_CONFIG_SIZE 0x2
 
@@ -158,7 +158,7 @@ uint8_t cmd_pause(struct s96at_desc *desc, uint8_t selector);
 
 uint8_t cmd_random(struct s96at_desc *desc, uint8_t mode, uint8_t *buf, size_t size);
 
-uint8_t cmd_read(struct s96at_desc *desc, uint8_t zone, uint8_t addr,
+uint8_t cmd_read(struct s96at_desc *desc, uint8_t zone, uint16_t addr,
 		 uint8_t offset, size_t size, void *data, size_t data_size);
 
 uint8_t cmd_sha(struct s96at_desc *desc, uint8_t mode, const uint8_t *in,
@@ -166,6 +166,6 @@ uint8_t cmd_sha(struct s96at_desc *desc, uint8_t mode, const uint8_t *in,
 
 uint8_t cmd_update_extra(struct s96at_desc *desc, uint8_t mode, uint8_t value);
 
-uint8_t cmd_write(struct s96at_desc *desc, uint8_t zone, uint8_t addr,
+uint8_t cmd_write(struct s96at_desc *desc, uint8_t zone, uint16_t addr,
 		  bool encrypted, const uint8_t *data, size_t size);
 #endif

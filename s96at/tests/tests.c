@@ -798,7 +798,7 @@ static int test_read_config_4byte(void)
 static int test_read_data(void)
 {
 	uint8_t ret;
-	uint8_t id = 12;
+	struct s96at_slot_addr addr = {12, 0, 0};
 	size_t length = 32;
 	uint8_t buf_a[32];
 	uint8_t buf_e[] = {
@@ -808,7 +808,7 @@ static int test_read_data(void)
 		0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc
 	};
 
-	ret = s96at_read_data(&desc, id, 0, S96AT_FLAG_NONE, buf_a, length);
+	ret = s96at_read_data(&desc, &addr, S96AT_FLAG_NONE, buf_a, length);
 	CHECK_RES("Value", ret, buf_a, ARRAY_LEN(buf_a));
 
 	return memcmp(buf_a, buf_e, ARRAY_LEN(buf_e));
@@ -817,13 +817,12 @@ static int test_read_data(void)
 static int test_read_data_4byte(void)
 {
 	uint8_t ret;
-	uint8_t id = 12;
-	uint8_t offset = 3;
+	struct s96at_slot_addr addr = {12, 0, 3};
 	size_t length = 4;
 	uint8_t buf_a[4];
 	uint8_t buf_e[] = {0xcc, 0xcc, 0xcc, 0xcc};
 
-	ret = s96at_read_data(&desc, id, offset, S96AT_FLAG_NONE, buf_a, length);
+	ret = s96at_read_data(&desc, &addr, S96AT_FLAG_NONE, buf_a, length);
 	CHECK_RES("Value", ret, buf_a, ARRAY_LEN(buf_a));
 
 	return memcmp(buf_a, buf_e, ARRAY_LEN(buf_e));
