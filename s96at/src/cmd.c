@@ -176,39 +176,18 @@ void get_command(uint8_t dev, struct cmd_packet *p, uint8_t opcode)
 		p->max_time = atecc508a_get_exec_time(opcode);
 }
 
-uint8_t cmd_read(struct s96at_desc *desc, uint8_t zone, uint8_t addr,
-		 uint8_t offset, size_t size, void *data, size_t data_size)
+uint8_t cmd_check_mac(struct s96at_desc *desc, uint8_t *in, size_t in_size,
+		      uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size)
 {
-	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
-	uint8_t resp_buf[size];
 
-	assert(zone < ZONE_END);
-	assert(size == 4 || size == 32);
+	get_command(desc->dev, &p, OPCODE_CHECKMAC);
+	p.param1 = mode;
+	p.param2[0] = slotnbr;
+	p.data = in;
+	p.data_length = in_size;
 
-	get_command(desc->dev, &p, OPCODE_READ);
-
-	/*
-	 * Bit 7 should be '1' for 32 byte reads and always zero, when zone is
-	 * OTP (see Table 8-33 in the specification).
-	 */
-	if (zone == ZONE_OTP)
-		zone &= ~(1 << 7);
-	else if (data_size == 32)
-		zone |= (1 << 7);
-
-	p.param1 = zone;
-	p.param2[0] = addr;
-	p.param2[1] = 0;
-
-	ret = at204_msg(desc->ioif, &p, resp_buf, sizeof(resp_buf));
-
-	if (ret == STATUS_OK)
-		memcpy(data, &resp_buf[offset], data_size);
-	else
-		loge("Failed to read from %s zone!\n", zone2str(zone));
-
-	return ret;
+	return at204_msg(desc->ioif, &p, out, out_size);
 }
 
 uint8_t cmd_derive_key(struct s96at_desc *desc, uint8_t random, uint8_t slotnbr,
@@ -227,20 +206,6 @@ uint8_t cmd_derive_key(struct s96at_desc *desc, uint8_t random, uint8_t slotnbr,
 	return at204_msg(desc->ioif, &p, &resp, sizeof(resp));
 }
 
-uint8_t cmd_check_mac(struct s96at_desc *desc, uint8_t *in, size_t in_size,
-		      uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size)
-{
-	struct cmd_packet p;
-
-	get_command(desc->dev, &p, OPCODE_CHECKMAC);
-	p.param1 = mode;
-	p.param2[0] = slotnbr;
-	p.data = in;
-	p.data_length = in_size;
-
-	return at204_msg(desc->ioif, &p, out, out_size);
-}
-
 uint8_t cmd_devrev(struct s96at_desc *desc, uint8_t *buf, size_t size)
 {
 	struct cmd_packet p;
@@ -248,6 +213,22 @@ uint8_t cmd_devrev(struct s96at_desc *desc, uint8_t *buf, size_t size)
 	get_command(desc->dev, &p, OPCODE_DEVREV);
 
 	return at204_msg(desc->ioif, &p, buf, size);
+}
+
+uint8_t cmd_gen_dig(struct s96at_desc *desc, const uint8_t *in, size_t in_size,
+		    uint8_t zone, uint16_t slotnbr)
+{
+	uint8_t resp;
+	struct cmd_packet p;
+
+	get_command(desc->dev, &p, OPCODE_GENDIG);
+	p.param1 = zone;
+	p.param2[0] = slotnbr & 0xff;
+	p.param2[1] = slotnbr >> 8;
+	p.data = in;
+	p.data_length = in_size;
+
+	return at204_msg(desc->ioif, &p, &resp, sizeof(resp));
 }
 
 uint8_t cmd_hmac(struct s96at_desc *desc, uint8_t mode, uint16_t slotnbr, uint8_t *hmac)
@@ -352,6 +333,17 @@ uint8_t cmd_nonce(struct s96at_desc *desc, const uint8_t *in, size_t in_size,
 	return ret;
 }
 
+uint8_t cmd_pause(struct s96at_desc *desc, uint8_t selector)
+{
+	struct cmd_packet p;
+	uint8_t resp_buf;
+
+	get_command(desc->dev, &p, OPCODE_PAUSE);
+	p.param1 = selector;
+
+	return at204_msg(desc->ioif, &p, &resp_buf, 1);
+}
+
 uint8_t cmd_random(struct s96at_desc *desc, uint8_t mode, uint8_t *buf, size_t size)
 {
 	struct cmd_packet p;
@@ -362,31 +354,40 @@ uint8_t cmd_random(struct s96at_desc *desc, uint8_t mode, uint8_t *buf, size_t s
 	return at204_msg(desc->ioif, &p, buf, size);
 }
 
-uint8_t cmd_gen_dig(struct s96at_desc *desc, const uint8_t *in, size_t in_size,
-		    uint8_t zone, uint16_t slotnbr)
+uint8_t cmd_read(struct s96at_desc *desc, uint8_t zone, uint8_t addr,
+		 uint8_t offset, size_t size, void *data, size_t data_size)
 {
-	uint8_t resp;
+	int ret = STATUS_EXEC_ERROR;
 	struct cmd_packet p;
+	uint8_t resp_buf[size];
+	uint8_t _zone = zone;
 
-	get_command(desc->dev, &p, OPCODE_GENDIG);
-	p.param1 = zone;
-	p.param2[0] = slotnbr & 0xff;
-	p.param2[1] = slotnbr >> 8;
-	p.data = in;
-	p.data_length = in_size;
+	assert(zone < ZONE_END);
+	assert(size == 4 || size == 32);
 
-	return at204_msg(desc->ioif, &p, &resp, sizeof(resp));
-}
+	get_command(desc->dev, &p, OPCODE_READ);
 
-uint8_t cmd_pause(struct s96at_desc *desc, uint8_t selector)
-{
-	struct cmd_packet p;
-	uint8_t resp_buf;
+	/*
+	 * Bit 7 should be '1' for 32 byte reads and always zero, when zone is
+	 * OTP (see Table 8-33 in the specification).
+	 */
+	if (_zone == ZONE_OTP)
+		_zone &= ~(1 << 7);
+	else if (data_size == 32)
+		_zone |= (1 << 7);
 
-	get_command(desc->dev, &p, OPCODE_PAUSE);
-	p.param1 = selector;
+	p.param1 = _zone;
+	p.param2[0] = addr;
+	p.param2[1] = 0;
 
-	return at204_msg(desc->ioif, &p, &resp_buf, 1);
+	ret = at204_msg(desc->ioif, &p, resp_buf, sizeof(resp_buf));
+
+	if (ret == STATUS_OK)
+		memcpy(data, &resp_buf[offset], data_size);
+	else
+		loge("Failed to read from %s zone!\n", zone2str(zone));
+
+	return ret;
 }
 
 uint8_t cmd_sha(struct s96at_desc *desc, uint8_t mode, const uint8_t *in,
