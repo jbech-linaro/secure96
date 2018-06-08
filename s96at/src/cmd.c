@@ -231,6 +231,21 @@ uint8_t cmd_gen_dig(struct s96at_desc *desc, const uint8_t *in, size_t in_size,
 	return at204_msg(desc->ioif, &p, &resp, sizeof(resp));
 }
 
+uint8_t cmd_gen_key(struct s96at_desc *desc, uint8_t mode, uint8_t slotnbr,
+		    const uint8_t *in, size_t in_size, uint8_t *out, size_t out_len)
+{
+	struct cmd_packet p;
+
+	get_command(desc->dev, &p, OPCODE_GENKEY);
+
+	p.param1 = mode;
+	p.param2[0] = slotnbr;
+	p.data = in;
+	p.data_length = in_size;
+
+	return at204_msg(desc->ioif, &p, out, out_len);
+}
+
 uint8_t cmd_hmac(struct s96at_desc *desc, uint8_t mode, uint16_t slotnbr, uint8_t *hmac)
 {
 	struct cmd_packet p;

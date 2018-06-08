@@ -141,6 +141,31 @@ uint8_t s96at_gen_digest(struct s96at_desc *desc, enum s96at_zone zone,
 	return cmd_gen_dig(desc, data, data_len, zone, slot);
 }
 
+uint8_t s96at_gen_key(struct s96at_desc *desc, enum s96at_genkey_mode mode,
+		      uint8_t slot, struct s96at_ecc_pub *pub)
+{
+	uint8_t ret;
+	uint8_t out[ECC_PUB_LEN];
+
+	if (mode == S96AT_GENKEY_MODE_DIGEST) {
+		ret = cmd_gen_key(desc, mode, slot, NULL, 0, out, 1);
+		if (ret != STATUS_OK)
+			return ret;
+	} else {
+		if (!pub)
+			return S96AT_STATUS_BAD_PARAMETERS;
+
+		ret = cmd_gen_key(desc, mode, slot, NULL, 0, out, ECC_PUB_LEN);
+		if (ret != STATUS_OK)
+			return ret;
+
+		memcpy(pub->x, out, S96AT_ECC_PUB_X_LEN);
+		memcpy(pub->y, out + S96AT_ECC_PUB_X_LEN, S96AT_ECC_PUB_Y_LEN);
+	}
+
+	return ret;
+}
+
 uint8_t s96at_gen_nonce(struct s96at_desc *desc, enum s96at_nonce_mode mode,
 		    uint8_t *data, uint8_t *random)
 {
