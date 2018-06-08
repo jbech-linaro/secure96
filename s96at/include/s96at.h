@@ -36,6 +36,8 @@
 
 #define S96AT_CHALLENGE_LEN			32
 #define S96AT_DEVREV_LEN			4
+#define S96AT_ECC_PUB_X_LEN			32
+#define S96AT_ECC_PUB_Y_LEN			32
 #define S96AT_GENDIG_INPUT_LEN			4
 #define S96AT_HMAC_LEN				32
 #define S96AT_KEY_LEN				32
@@ -121,6 +123,17 @@ struct s96at_check_mac_data {
 	uint32_t flags;
 	const uint8_t *otp;
 	const uint8_t *sn;
+};
+
+struct s96at_ecc_pub {
+	uint8_t x[S96AT_ECC_PUB_X_LEN];
+	uint8_t y[S96AT_ECC_PUB_Y_LEN];
+};
+
+enum s96at_genkey_mode {
+	S96AT_GENKEY_MODE_PUB,
+	S96AT_GENKEY_MODE_PRIV	  = 0x04,
+	S96AT_GENKEY_MODE_DIGEST  = 0x10,
 };
 
 enum s96at_mac_mode {
@@ -235,6 +248,28 @@ uint8_t s96at_get_devrev(struct s96at_desc *desc, uint8_t *buf);
  */
 uint8_t s96at_gen_digest(struct s96at_desc *desc, enum s96at_zone zone,
 			 uint8_t slot, uint8_t *data);
+
+/* Generate an ECC key
+ *
+ * This function is only available on ATECC508A.
+ *
+ * Mode S96AT_GENKEY_MODE_PRIV generates an ECC keypair and stores the private
+ * key into the defined slot. The key slot must be appropriately configured to
+ * store an ECC private key. The x and y coordinates of the public key are
+ * written into the structure pointed by pub.
+ *
+ * Mode S96AT_GENKEY_MODE_PUB writes the x and y coordinates of the public key
+ * that corresponds to the private key stored into a given slot into the structure
+ * pointed to by pub. The public key is also stored in TempKey.
+ *
+ * Mode S96AT_GENKEY_MODE_DIG generates a digest of the public key stored in
+ * the defined slot, and stores it into TempKey. No data are written into the
+ * pub structure.
+ *
+ * Returns S96AT_STATUS_OK on success, or an appropriate error value.
+ */
+uint8_t s96at_gen_key(struct s96at_desc *desc, enum s96at_genkey_mode mode,
+		      uint8_t slot, struct s96at_ecc_pub *pub);
 
 /* Generate an HMAC-SHA256
  *

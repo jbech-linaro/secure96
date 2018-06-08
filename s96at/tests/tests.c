@@ -865,6 +865,36 @@ static int test_state(void)
 	return ret;
 }
 
+static int test_genkey_pub(void)
+{
+	uint8_t ret;
+	uint8_t slot = 11;
+	struct s96at_ecc_pub pub = {0};
+
+	ret = s96at_gen_key(&desc, S96AT_GENKEY_MODE_PUB, slot, &pub);
+	CHECK_RES("Res", ret, NULL, 0);
+	if (ret == S96AT_STATUS_OK) {
+		hexdump("ECC Pub->X", pub.x, S96AT_ECC_PUB_X_LEN);
+		hexdump("ECC Pub->Y", pub.y, S96AT_ECC_PUB_Y_LEN);
+	}
+
+	return ret;
+}
+
+static int test_genkey_digest(void)
+{
+	uint8_t ret;
+	uint8_t slot = 10;
+
+	ret = s96at_gen_nonce(&desc, S96AT_NONCE_MODE_PASSTHROUGH, challenge, NULL);
+	CHECK_RES("Nonce", ret, NULL, 0);
+
+	ret = s96at_gen_key(&desc, S96AT_GENKEY_MODE_DIGEST, slot, NULL);
+	CHECK_RES("Result", ret, NULL, 0);
+
+	return ret;
+}
+
 static int test_reset(void)
 {
 	uint8_t ret;
@@ -903,6 +933,8 @@ int main(int argc, char *argv[])
 		{"DeriveKey", test_derivekey, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"DevRev", test_devrev, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"GenDig", test_gendig, S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"GenKey: Pub", test_genkey_pub, S96AT_ATECC508A},
+		{"GenKey: Digest", test_genkey_digest, S96AT_ATECC508A},
 		{"HMAC", test_hmac, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"Key Valid: Valid", test_key_valid_is_valid, S96AT_ATECC508A},
 		{"Key Valid: Invalid", test_key_valid_is_invalid, S96AT_ATECC508A},
