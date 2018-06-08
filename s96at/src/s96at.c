@@ -429,25 +429,6 @@ uint8_t s96at_get_state(struct s96at_desc *desc, uint8_t *buf)
 	return ret;
 }
 
-uint8_t s96at_get_zone_config(struct s96at_desc *desc, uint8_t *buf)
-{
-	int i;
-	int ret = STATUS_EXEC_ERROR;
-
-	if (!buf)
-		return S96AT_STATUS_BAD_PARAMETERS;
-
-	/* Read word by word into the buffer */
-	for (i = 0; i < ZONE_CONFIG_SIZE / WORD_SIZE; i++) {
-		ret = cmd_read(desc, ZONE_CONFIG, i, 0, WORD_SIZE,
-			       buf + (i * WORD_SIZE), WORD_SIZE);
-		if (ret != STATUS_OK)
-			break;
-	}
-
-	return ret;
-}
-
 uint8_t s96at_get_sha(struct s96at_desc *desc, uint8_t *buf,
 		  size_t buf_len, size_t msg_len, uint8_t *hash)
 {
