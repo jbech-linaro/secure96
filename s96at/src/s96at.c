@@ -473,16 +473,23 @@ uint8_t s96at_lock_zone(struct s96at_desc *desc, enum s96at_zone zone, uint16_t 
 	return cmd_lock(desc, zone, &crc);
 }
 
-uint8_t s96at_read_config(struct s96at_desc *desc, uint8_t id, uint8_t *buf,
-			  size_t length)
+uint8_t s96at_read_config(struct s96at_desc *desc, uint8_t id, uint8_t *buf)
 {
 	uint8_t ret;
+	uint8_t length;
 
-	if (id > ZONE_CONFIG_NUM_WORDS - 1)
-		return S96AT_STATUS_BAD_PARAMETERS;
+	if (desc->dev == S96AT_ATSHA204A) {
+		if (id > S96AT_ATSHA204A_ZONE_CONFIG_NUM_WORDS - 1)
+			return S96AT_STATUS_BAD_PARAMETERS;
+		length = S96AT_WORD_SIZE;
+	}
 
-	if (length != 32 && length != 4)
-		return S96AT_STATUS_BAD_PARAMETERS;
+	if (desc->dev == S96AT_ATECC508A) {
+		if (id > S96AT_ATECC508A_ZONE_CONFIG_NUM_BLOCKS - 1)
+			return S96AT_STATUS_BAD_PARAMETERS;
+		length = S96AT_BLOCK_SIZE;
+		id <<= 3;
+	}
 
 	ret = cmd_read(desc, ZONE_CONFIG, id, 0, length, buf, length);
 
@@ -539,7 +546,12 @@ uint8_t s96at_update_extra(struct s96at_desc *desc, enum s96at_update_extra_mode
 
 uint8_t s96at_write_config(struct s96at_desc *desc, uint8_t id, const uint8_t *buf)
 {
-	if (id > ZONE_CONFIG_NUM_WORDS - 1)
+	if (desc->dev == S96AT_ATSHA204A &&
+	    id > S96AT_ATSHA204A_ZONE_CONFIG_NUM_WORDS - 1)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	if (desc->dev == S96AT_ATECC508A &&
+	    id > S96AT_ATECC508A_ZONE_CONFIG_NUM_WORDS - 1)
 		return S96AT_STATUS_BAD_PARAMETERS;
 
 	return cmd_write(desc, ZONE_CONFIG, id, false, buf, WORD_SIZE);

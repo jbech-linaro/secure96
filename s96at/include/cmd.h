@@ -18,11 +18,6 @@ enum {
 	ZONE_END
 };
 
-#define ZONE_CONFIG_SIZE	88
-#define ZONE_OTP_SIZE		64
-#define ZONE_DATA_SIZE		512
-
-#define ZONE_CONFIG_NUM_WORDS  22
 #define ZONE_DATA_NUM_SLOTS    16
 #define ZONE_OTP_NUM_WORDS     16
 
