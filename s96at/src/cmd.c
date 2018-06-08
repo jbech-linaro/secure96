@@ -123,7 +123,7 @@ static uint8_t atecc508a_get_exec_time(uint8_t opcode)
 		max_time = 14;
 		break;
 	case OPCODE_NONCE:
-		max_time = 7;
+		max_time = 60; /* Incremented from 7 */
 		break;
 	case OPCODE_PAUSE:
 		max_time = 3;
