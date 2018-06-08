@@ -769,14 +769,13 @@ static int test_key_valid_is_valid(void)
 	return valid == S96AT_KEY_VALID ? 0 : -1;
 }
 
-static int test_read_config(void)
+static int test_read_config_32byte(void)
 {
 	uint8_t ret;
 	uint8_t id = 0;
-	uint8_t length = 32;
 	uint8_t buf[32];
 
-	ret = s96at_read_config(&desc, id, buf, length);
+	ret = s96at_read_config(&desc, id, buf);
 	CHECK_RES("Value", ret, buf, ARRAY_LEN(buf));
 
 	return ret;
@@ -786,10 +785,9 @@ static int test_read_config_4byte(void)
 {
 	uint8_t ret;
 	uint8_t id = 0;
-	uint8_t length = 4;
 	uint8_t buf[4];
 
-	ret = s96at_read_config(&desc, id, buf, length);
+	ret = s96at_read_config(&desc, id, buf);
 	CHECK_RES("Value", ret, buf, ARRAY_LEN(buf));
 
 	return ret;
@@ -914,10 +912,8 @@ int main(int argc, char *argv[])
 		{"Random: Update seed", test_random, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"Random: No update seed", test_random_no_seed,
 		 S96AT_ATSHA204A | S96AT_ATECC508A},
-		{"Read: Config (32 bytes)", test_read_config,
-		 S96AT_ATSHA204A | S96AT_ATECC508A},
-		{"Read: Config (4 bytes)", test_read_config_4byte,
-		 S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"Read: Config (32 bytes)", test_read_config_32byte, S96AT_ATECC508A},
+		{"Read: Config (4 bytes)", test_read_config_4byte, S96AT_ATSHA204A},
 		{"Read: Data (32 bytes)", test_read_data,
 		  S96AT_ATSHA204A},
 		{"Read: Data (4 bytes)", test_read_data_4byte,

@@ -11,6 +11,20 @@
 
 #define S96AT_VERSION				PROJECT_VERSION
 
+#define S96AT_WORD_SIZE		4
+#define S96AT_BLOCK_SIZE	32
+
+#define S96AT_ATECC508A_ZONE_CONFIG_LEN		128
+#define S96AT_ATECC508A_ZONE_CONFIG_NUM_BLOCKS	4
+#define S96AT_ATECC508A_ZONE_CONFIG_NUM_WORDS	32
+#define S96AT_ATECC508A_ZONE_DATA_LEN		1208
+#define S96AT_ATECC508A_ZONE_OTP_LEN		64
+
+#define S96AT_ATSHA204A_ZONE_CONFIG_LEN		88
+#define S96AT_ATSHA204A_ZONE_CONFIG_NUM_WORDS	22
+#define S96AT_ATSHA204A_ZONE_DATA_LEN		512
+#define S96AT_ATSHA204A_ZONE_OTP_LEN		64
+
 #define S96AT_STATUS_OK				0x00
 #define S96AT_STATUS_CHECKMAC_FAIL		0x01
 #define S96AT_STATUS_EXEC_ERROR			0x0f
@@ -437,16 +451,19 @@ uint8_t s96at_lock_zone(struct s96at_desc *desc, enum s96at_zone zone, uint16_t 
 
 /* Read from the Configuration zone
  *
- * The Config zone is organized into 4-byte words. The id parameter specifies
- * which word to be read, in the range of 0-21. Reads can be of 4-byte words,
- * or 32-byte blocks. The length parameter specifies the read length, and the
- * buffer size must be set accordingly. Reading from the Config zone is always
- * permitted.
+ * In atecc508a the Configuration zone is organized into 32-byte blocks. The id
+ * parameter specifies the block to be read, in the range of 0-3. The block's
+ * contents are written into buf, which must have the appropriate size.
+ *
+ * In atsha204a the Config zone is organized into 4-byte words. The id parameter
+ * specifies the word to be read, in the range of 0-21. The buffer size must be
+ * set accordingly.
+ *
+ * Reading from the Config zone is always permitted.
  *
  * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
  */
-uint8_t s96at_read_config(struct s96at_desc *desc, uint8_t id, uint8_t *buf,
-			  size_t length);
+uint8_t s96at_read_config(struct s96at_desc *desc, uint8_t id, uint8_t *buf);
 
 /* Read from the Data zone
  *
@@ -542,11 +559,10 @@ uint8_t s96at_wake(struct s96at_desc *desc);
 
 /* Write to the Config zone
  *
- * The Config zone is organized into 4-byte words. The id parameter specifies
- * which word to be written. Not all words are writable, and some words can
- * only be updated using the UpdateExtra command. When writing to the
- * Configuration zone, the buffer length is always 4 bytes. Writing to the
- * Configuration zone is only permitted before the zone is locked.
+ * Writes into the Configuration zone are performed in 4-byte words. The id
+ * parameter specifies the word to be written. Not all words are writable,
+ * and some words can only be updated using the UpdateExtra command. Writing
+ * to the Configuration zone is only permitted before the zone is locked.
  *
  * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
  */
