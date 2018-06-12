@@ -394,10 +394,14 @@ uint8_t s96at_get_serialnbr(struct s96at_desc *desc, uint8_t *serial);
 /* Generate a hash (SHA-256)
  *
  * Generates a SHA-256 hash of the input message contained in buf.
- * The message length is specified in msg_len. The input buffer's length
- * must be a multiple of S96AT_SHA_BLOCK_LEN and it is modified
- * in place to contain the SHA padding, as defined in FIPS 180-2. The
- * input buffer is therefore required to have enough room for the padding.
+ * The message length is specified in msg_len.
+ *
+ * In ATECC508A, the minimum message length is 64 Bytes.
+ *
+ * In ATSHA204A, the input buffer's length must be a multiple of
+ * S96AT_SHA_BLOCK_LEN and the buffer is modified in place to contain
+ * the SHA padding, as defined in FIPS 180-2. The input buffer is
+ * therefore required to have enough room for the padding.
  *
  * The resulting hash is stored in the hash buffer.
  *

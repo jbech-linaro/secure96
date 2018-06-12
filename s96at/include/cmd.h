@@ -54,8 +54,9 @@ enum {
 #define NONCE_MODE_RANDOM_NO_SEED	1
 #define NONCE_MODE_PASSTHROUGH		3
 
-#define SHA_MODE_INIT          0x00
-#define SHA_MODE_COMPUTE       0x01
+#define SHA_MODE_INIT		0x00
+#define SHA_MODE_COMPUTE	0x01
+#define SHA_MODE_END		0x02
 
 /* OP-codes for each command
  *

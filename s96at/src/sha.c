@@ -19,7 +19,7 @@
  * msg_len + 1 + k ≡ 448 mod 512
  *
  * Length:
- * An 8 bit block is appended after padding, storing the
+ * An 8 byte block is appended after padding, storing the
  * binary representation of the message length in bits.
  */
 int sha_apply_padding(uint8_t *buf, size_t buf_len, size_t msg_len, size_t *padded_msg_len)
