@@ -432,34 +432,74 @@ uint8_t s96at_get_state(struct s96at_desc *desc, uint8_t *buf)
 uint8_t s96at_get_sha(struct s96at_desc *desc, uint8_t *buf,
 		  size_t buf_len, size_t msg_len, uint8_t *hash)
 {
-	int i;
 	uint8_t ret;
 	uint8_t sha_resp;
 	size_t padded_msg_len;
 
-	if (!buf || buf_len < 0 || msg_len < 0)
+	if (!buf)
 		return S96AT_STATUS_BAD_PARAMETERS;
 
-	if (buf_len <= msg_len)
-		return S96AT_STATUS_BAD_PARAMETERS;
+	/* ATECC508A requires a message of at least 64 bytes, and expects the message
+	 * to be passed raw. ATSHA204A requires that the SHA-256 padding is applied to
+	 * the message before passed to the device, therefore it does not impose any
+	 * restrictions on the minimum message length.
+	 */
+	if (desc->dev == S96AT_ATECC508A) {
 
-	if (buf_len % SHA_BLOCK_LEN)
-		return S96AT_STATUS_BAD_PARAMETERS;
+		uint8_t *extra_ptr;
+		uint8_t extra_len; /* 63 Bytes max */
 
-	ret = sha_apply_padding(buf, buf_len, msg_len, &padded_msg_len);
-	if (ret != S96AT_STATUS_OK)
-		return ret;
+		if (buf_len < msg_len)
+			return S96AT_STATUS_BAD_PARAMETERS;
 
-	ret = cmd_sha(desc, SHA_MODE_INIT, NULL, 0, &sha_resp,
-		      sizeof(sha_resp));
-	if (ret != STATUS_OK)
-		return ret;
+		if (msg_len < SHA_BLOCK_LEN)
+			return S96AT_STATUS_BAD_PARAMETERS;
 
-	for (i = 0; i < padded_msg_len / SHA_BLOCK_LEN; i++) {
-		ret = cmd_sha(desc, SHA_MODE_COMPUTE, buf + SHA_BLOCK_LEN * i,
-			      SHA_BLOCK_LEN, hash, S96AT_SHA_LEN);
+		ret = cmd_sha(desc, SHA_MODE_INIT, NULL, 0, &sha_resp,
+			      sizeof(sha_resp));
 		if (ret != STATUS_OK)
 			goto out;
+
+		for (int i = 0; i < msg_len / SHA_BLOCK_LEN; i++) {
+			ret = cmd_sha(desc, SHA_MODE_COMPUTE, buf + SHA_BLOCK_LEN * i,
+				      SHA_BLOCK_LEN, &sha_resp, sizeof(sha_resp));
+			if (ret != STATUS_OK)
+				goto out;
+		}
+
+		extra_len = msg_len % SHA_BLOCK_LEN;
+		if (extra_len)
+			extra_ptr = buf + SHA_BLOCK_LEN * (msg_len / SHA_BLOCK_LEN);
+		else
+			extra_ptr = NULL;
+
+		ret = cmd_sha(desc, SHA_MODE_END, extra_ptr, extra_len, hash,
+			      S96AT_SHA_LEN);
+		if (ret != STATUS_OK)
+			goto out;
+	} else {
+
+		if (buf_len % SHA_BLOCK_LEN)
+			return S96AT_STATUS_BAD_PARAMETERS;
+
+		if (buf_len <= msg_len)
+			return S96AT_STATUS_BAD_PARAMETERS;
+
+		ret = sha_apply_padding(buf, buf_len, msg_len, &padded_msg_len);
+		if (ret != S96AT_STATUS_OK)
+			goto out;
+
+		ret = cmd_sha(desc, SHA_MODE_INIT, NULL, 0, &sha_resp,
+			      sizeof(sha_resp));
+		if (ret != STATUS_OK)
+			goto out;
+
+		for (int i = 0; i < padded_msg_len / SHA_BLOCK_LEN; i++) {
+			ret = cmd_sha(desc, SHA_MODE_COMPUTE, buf + SHA_BLOCK_LEN * i,
+				      SHA_BLOCK_LEN, hash, S96AT_SHA_LEN);
+			if (ret != STATUS_OK)
+				goto out;
+		}
 	}
 out:
 	return ret;

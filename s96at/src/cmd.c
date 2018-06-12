@@ -411,6 +411,8 @@ uint8_t cmd_sha(struct s96at_desc *desc, uint8_t mode, const uint8_t *in,
 
 	get_command(desc->dev, &p, OPCODE_SHA);
 	p.param1 = mode;
+	p.param2[0] = in_size & 0xff;
+	p.param2[1] = in_size >> 8;
 	p.data = in;
 	p.data_length = in_size;
 
