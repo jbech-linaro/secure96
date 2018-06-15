@@ -36,6 +36,7 @@
 
 #define S96AT_CHALLENGE_LEN			32
 #define S96AT_DEVREV_LEN			4
+#define S96AT_ECC_PRIV_LEN			32 /* without padding */
 #define S96AT_ECC_PUB_X_LEN			32
 #define S96AT_ECC_PUB_Y_LEN			32
 #define S96AT_GENDIG_INPUT_LEN			4
@@ -678,5 +679,22 @@ uint8_t s96at_write_data(struct s96at_desc *desc, struct s96at_slot_addr *addr,
  */
 uint8_t s96at_write_otp(struct s96at_desc *desc, uint8_t id, const uint8_t *buf,
 			size_t length);
+
+/* Write an ECC private key into a slot
+ *
+ * This function is only available on ATECC508A.
+ *
+ * Writes the ECC private key generated outside the device pointed to by priv,
+ * into the defined slot. The private key must be prepended with 4 zero bytes.
+ * The zone must be configured to contain an EC private key. If the Data Zone
+ * has been locked, the private key must be encrypted and an authentication MAC
+ * is required to be passed along with the encrypted key. Before the Data Zone
+ * has been locked, the key can be written unencrypted. In that case the pointer
+ * to authorizing mac parameter must be NULL.
+ *
+ * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ */
+uint8_t s96at_write_priv(struct s96at_desc *desc, uint8_t slot, uint8_t *priv,
+			 uint8_t *mac);
 
 #endif

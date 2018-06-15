@@ -163,6 +163,9 @@ uint8_t cmd_nonce(struct s96at_desc *desc, const uint8_t *in, size_t in_size,
 
 uint8_t cmd_pause(struct s96at_desc *desc, uint8_t selector);
 
+uint8_t cmd_privwrite(struct s96at_desc *desc, bool encrypt, uint8_t slotnbr,
+		      const uint8_t *value, const uint8_t *mac, uint8_t *out);
+
 uint8_t cmd_random(struct s96at_desc *desc, uint8_t mode, uint8_t *buf, size_t size);
 
 uint8_t cmd_read(struct s96at_desc *desc, uint8_t zone, uint16_t addr,

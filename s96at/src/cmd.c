@@ -390,6 +390,27 @@ uint8_t cmd_pause(struct s96at_desc *desc, uint8_t selector)
 	return at204_msg(desc->ioif, &p, &resp_buf, 1);
 }
 
+uint8_t cmd_privwrite(struct s96at_desc *desc, bool encrypt, uint8_t slotnbr,
+		      const uint8_t *value, const uint8_t *mac, uint8_t *out)
+{
+	struct cmd_packet p;
+	uint8_t data[68] = {0};
+
+	get_command(desc->dev, &p, OPCODE_PRIV_WRITE);
+	p.param1 = encrypt << 6;
+	p.param2[0] = slotnbr;
+	p.data = data;
+	p.data_length = 36;
+
+	memcpy(data, value, 36);
+	if (mac) {
+		memcpy(data + 36, mac, S96AT_MAC_LEN);
+		p.data_length += S96AT_MAC_LEN;
+	}
+
+	return at204_msg(desc->ioif, &p, out, 1);
+}
+
 uint8_t cmd_random(struct s96at_desc *desc, uint8_t mode, uint8_t *buf, size_t size)
 {
 	struct cmd_packet p;
