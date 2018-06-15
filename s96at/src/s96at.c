@@ -676,3 +676,20 @@ uint8_t s96at_write_otp(struct s96at_desc *desc, uint8_t id, const uint8_t *buf,
 	return cmd_write(desc, ZONE_OTP, id, false, buf, length);
 }
 
+uint8_t s96at_write_priv(struct s96at_desc *desc, uint8_t slot, uint8_t *priv,
+			 uint8_t *mac)
+{
+	uint8_t ret;
+	uint8_t resp;
+	uint8_t encrypt = mac ? true : false;
+
+	if (!priv)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	ret = cmd_privwrite(desc, encrypt, slot, priv, mac, &resp);
+	if (ret == S96AT_STATUS_OK && resp != 0)
+		ret = S96AT_STATUS_EXEC_ERROR;
+
+	return ret;
+}
+
