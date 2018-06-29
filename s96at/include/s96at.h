@@ -218,6 +218,18 @@ uint16_t s96at_crc(const uint8_t *buf, size_t buf_len, uint16_t current_crc);
 uint8_t s96at_derive_key(struct s96at_desc *desc, uint8_t slot, uint8_t *mac,
 			 uint32_t flags);
 
+/* Read the value of a monotonic counter
+ *
+ * This function is only available on ATECC508A.
+ *
+ * Reads the value of the specified counter into the val parameter.
+ * Valid values of the counter parameter are 0 and 1, corresponging
+ * to the device's Counter<0> and Counter<1>, respectively.
+ *
+ * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ */
+uint8_t s96at_get_counter(struct s96at_desc *desc, uint8_t counter, uint32_t *val);
+
 /* Get Device Revision
  *
  * Retrieves the device revision and stores it into the buffer pointed by
@@ -463,6 +475,17 @@ uint8_t s96at_get_sha(struct s96at_desc *desc, uint8_t *buf,
  * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
  */
 uint8_t s96at_get_state(struct s96at_desc *desc, uint8_t *buf);
+
+/* Increment the value of a monotonic counter
+ *
+ * This function is only available on ATECC508A.
+ *
+ * Increments the value of the specified counter. Valid counter values are
+ * 0 and 1.
+ *
+ * Returns S96AT_STATUS_OK on success, or an appropriate error value.
+ */
+uint8_t s96at_increment_counter(struct s96at_desc *desc, uint8_t counter);
 
 /* Initialize a device descriptor
  *
