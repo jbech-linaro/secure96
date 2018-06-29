@@ -895,6 +895,35 @@ static int test_genkey_digest(void)
 	return ret;
 }
 
+static int test_counter_get(void)
+{
+	uint8_t ret;
+	uint32_t val;
+
+	ret = s96at_get_counter(&desc, 1, &val);
+	CHECK_RES("Counter", ret, &val, sizeof(val));
+
+	return ret;
+}
+
+static int test_counter_inc(void)
+{
+	uint8_t ret;
+	uint32_t val1;
+	uint32_t val2;
+
+	ret = s96at_get_counter(&desc, 1, &val1);
+	CHECK_RES("Counter", ret, &val1, sizeof(val1));
+
+	ret = s96at_increment_counter(&desc, 1);
+	CHECK_RES("Counter", ret, NULL, 0);
+
+	ret = s96at_get_counter(&desc, 1, &val2);
+	CHECK_RES("Counter", ret, &val2, sizeof(val2));
+
+	return (val2 == val1 + 1);
+}
+
 static int test_reset(void)
 {
 	uint8_t ret;
@@ -930,6 +959,8 @@ int main(int argc, char *argv[])
 		 S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"CheckMAC: Mode 3", test_checkmac_mode3,
 		 S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"Counter: Get", test_counter_get, S96AT_ATECC508A},
+		{"Counter: Increment", test_counter_inc, S96AT_ATECC508A},
 		{"DeriveKey", test_derivekey, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"DevRev", test_devrev, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"GenDig", test_gendig, S96AT_ATSHA204A | S96AT_ATECC508A},

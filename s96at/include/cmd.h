@@ -29,6 +29,7 @@ enum {
 #define TEMPKEY_SOURCE_RANDOM	0
 #define TEMPKEY_SOURCE_INPUT	1
 
+#define COUNTER_LEN		4
 #define ECC_PUB_LEN		64
 #define HMAC_LEN		32
 #define RANDOM_LEN		32
@@ -41,6 +42,9 @@ enum {
 #define WORD_SIZE		4
 #define MAX_READ_SIZE		32 /* bytes */
 #define MAX_WRITE_SIZE		32
+
+#define	COUNTER_MODE_READ	0
+#define	COUNTER_MODE_INCREMENT	1
 
 #define INFO_MODE_REVISION	0x00
 #define INFO_MODE_KEY_VALID	0x01
@@ -127,6 +131,9 @@ uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr);
 
 uint8_t cmd_check_mac(struct s96at_desc *desc, uint8_t *in, size_t in_size,
 		      uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size);
+
+uint8_t cmd_counter(struct s96at_desc *desc, uint8_t mode, uint8_t counter,
+		    uint32_t *out);
 
 uint8_t cmd_derive_key(struct s96at_desc *desc, uint8_t random, uint8_t slotnbr,
 		       uint8_t *buf, size_t size);

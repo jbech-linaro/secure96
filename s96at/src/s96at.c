@@ -199,6 +199,17 @@ uint8_t s96at_gen_nonce(struct s96at_desc *desc, enum s96at_nonce_mode mode,
 	return ret;
 }
 
+uint8_t s96at_get_counter(struct s96at_desc *desc, uint8_t counter, uint32_t *val)
+{
+	if (!val)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	if (counter != 0 && counter != 1)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	return cmd_counter(desc, COUNTER_MODE_READ, counter, val);
+}
+
 uint8_t s96at_get_mac(struct s96at_desc *desc, enum s96at_mac_mode mode, uint8_t slot,
 		  const uint8_t *challenge, uint32_t flags, uint8_t *mac)
 {
@@ -528,6 +539,14 @@ uint8_t s96at_get_sha(struct s96at_desc *desc, uint8_t *buf,
 	}
 out:
 	return ret;
+}
+
+uint8_t s96at_increment_counter(struct s96at_desc *desc, uint8_t counter)
+{
+	if (counter != 0 && counter != 1)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	return cmd_counter(desc, COUNTER_MODE_INCREMENT, counter, NULL);
 }
 
 uint8_t s96at_lock_zone(struct s96at_desc *desc, enum s96at_zone zone, uint16_t crc)

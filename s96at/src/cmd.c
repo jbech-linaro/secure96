@@ -190,6 +190,23 @@ uint8_t cmd_check_mac(struct s96at_desc *desc, uint8_t *in, size_t in_size,
 	return at204_msg(desc->ioif, &p, out, out_size);
 }
 
+uint8_t cmd_counter(struct s96at_desc *desc, uint8_t mode, uint8_t counter, uint32_t *out)
+{
+	struct cmd_packet p;
+	uint8_t _out[COUNTER_LEN] = {0};
+	uint8_t ret;
+
+	get_command(desc->dev, &p, OPCODE_COUNTER);
+	p.param1 = mode;
+	p.param2[0] = counter;
+
+	ret = at204_msg(desc->ioif, &p, _out, COUNTER_LEN);
+	if (ret == STATUS_OK && mode == COUNTER_MODE_READ && out)
+		*out = (_out[0] << 24) | (_out[1] << 16) | (_out[2] << 8) | _out[3];
+
+	return ret;
+}
+
 uint8_t cmd_derive_key(struct s96at_desc *desc, uint8_t random, uint8_t slotnbr,
 		       uint8_t *buf, size_t size)
 {
