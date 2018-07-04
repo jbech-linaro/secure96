@@ -634,7 +634,7 @@ uint8_t s96at_sign(struct s96at_desc *desc, enum s96at_sign_mode mode, uint8_t s
 	if (flags & S96AT_FLAG_USE_SN)
 		mode |= 0x40;
 
-	if (flags & S96AT_FLAG_USE_INVALIDATE)
+	if (flags & S96AT_FLAG_INVALIDATE)
 		mode |= 0x01;
 
 	ret = cmd_sign(desc, mode, slot, buf);
@@ -651,6 +651,59 @@ uint8_t s96at_update_extra(struct s96at_desc *desc, enum s96at_update_extra_mode
 			   uint8_t val)
 {
 	return cmd_update_extra(desc, mode, val);
+}
+
+uint8_t s96at_verify_key(struct s96at_desc *desc, enum s96at_verify_key_mode mode,
+			 struct s96at_ecdsa_sig *sig, uint8_t slot, const uint8_t *buf)
+{
+	uint8_t data[ECDSA_SIGNATURE_LEN + KEY_VALIDATE_MSG_LEN];
+
+	if (!sig)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	if (!buf)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	if (slot < 8 || slot > 15)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	memcpy(data, sig->r, S96AT_ECDSA_R_LEN);
+	memcpy(data + S96AT_ECDSA_R_LEN, sig->s, S96AT_ECDSA_S_LEN);
+	memcpy(data + ECDSA_SIGNATURE_LEN, buf, 19);
+
+	return cmd_verify(desc, mode, slot, data, ECDSA_SIGNATURE_LEN +
+			  KEY_VALIDATE_MSG_LEN);
+}
+
+uint8_t s96at_verify_sig(struct s96at_desc *desc, enum s96at_verify_sig_mode mode,
+			 struct s96at_ecdsa_sig *sig, uint8_t slot,
+			 struct s96at_ecc_pub *pub)
+{
+	uint8_t data[ECDSA_SIGNATURE_LEN + ECC_PUB_LEN];
+	size_t data_len = ECDSA_SIGNATURE_LEN;
+	uint8_t _slot = slot;
+
+	if (!sig)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	if (mode == S96AT_VERIFY_SIG_MODE_EXTERNAL && !pub)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	memcpy(data, sig->r, S96AT_ECDSA_R_LEN);
+	memcpy(data + S96AT_ECDSA_R_LEN, sig->s, S96AT_ECDSA_S_LEN);
+
+	if (mode == S96AT_VERIFY_SIG_MODE_EXTERNAL) {
+		memcpy(data + ECDSA_SIGNATURE_LEN, pub->x, S96AT_ECC_PUB_X_LEN);
+		memcpy(data + ECDSA_SIGNATURE_LEN + S96AT_ECC_PUB_X_LEN,
+		       pub->y, S96AT_ECC_PUB_Y_LEN);
+		data_len += ECDSA_SIGNATURE_LEN;
+		/* In External mode, KeyId contains the curve type to be used
+		 * as encoded in KeyType (Table 9.54 in the ATECC508A spec)
+		 */
+		_slot = EC_NIST_P256;
+	}
+
+	return cmd_verify(desc, mode, _slot, data, data_len);
 }
 
 uint8_t s96at_write_config(struct s96at_desc *desc, uint8_t id, const uint8_t *buf)

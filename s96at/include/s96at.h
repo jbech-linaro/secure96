@@ -60,8 +60,8 @@
 #define S96AT_FLAG_USE_OTP_64_BITS		0x04
 #define S96AT_FLAG_USE_OTP_88_BITS		0x08
 #define S96AT_FLAG_USE_SN			0x10
-#define S96AT_FLAG_ENCRYPT			0x12
-#define S96AT_FLAG_USE_INVALIDATE		0x14
+#define S96AT_FLAG_ENCRYPT			0x20
+#define S96AT_FLAG_INVALIDATE			0x40
 
 #define S96AT_KEY_INVALID			0x00
 #define S96AT_KEY_VALID				0x01
@@ -166,6 +166,16 @@ enum s96at_random_mode {
 enum s96at_sign_mode {
 	S96AT_SIGN_MODE_INTERNAL,
 	S96AT_SIGN_MODE_EXTERNAL = 0x80
+};
+
+enum s96at_verify_key_mode {
+	S96AT_VERIFY_KEY_MODE_VALIDATE = 0x03,
+	S96AT_VERIFY_KEY_MODE_INVALIDATE = 0x07
+};
+
+enum s96at_verify_sig_mode {
+	S96AT_VERIFY_SIG_MODE_STORED,
+	S96AT_VERIFY_SIG_MODE_EXTERNAL = 0x2
 };
 
 enum s96at_update_extra_mode {
@@ -625,7 +635,7 @@ uint8_t s96at_reset(struct s96at_desc *desc);
  * internal signatures using SlotConfig.ReadKey.
  *
  * If the resulting sigature is intended to be used to invalidate a key (ie by
- * Verify(Invalidate)), then the S96AT_FLAG_USE_INVALIDATE must be set.
+ * Verify(Invalidate)), then the S96AT_FLAG_INVALIDATE must be set.
  *
  * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
  */
@@ -646,6 +656,38 @@ uint8_t s96at_sign(struct s96at_desc *desc, enum s96at_sign_mode mode, uint8_t s
  */
 uint8_t s96at_update_extra(struct s96at_desc *desc, enum s96at_update_extra_mode mode,
 			   uint8_t val);
+
+/* Validates or Invalidates an EC Public Key
+ *
+ * This function is only available on ATECC508A.
+ *
+ * Validates or Invalidates an EC public key. The mode parameter specifies whether to
+ * validate or to invalidate the key. The verification message must be stored into the
+ * buffer pointed by the buf parameter, and the validation signature is passed through
+ * the sig parameter.
+ *
+ * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ */
+uint8_t s96at_verify_key(struct s96at_desc *desc, enum s96at_verify_key_mode mode,
+			 struct s96at_ecdsa_sig *sig, uint8_t slot, const uint8_t *buf);
+
+/* Verify an ECDSA signature
+ *
+ * This function is only available on ATECC508A.
+ *
+ * Verifies an ECDSA signature. The signature's R and S components must be stored
+ * into the structure specified in the sig parameter. When mode is set to
+ * S96AT_VERIFY_SIG_MODE_EXTERNAL, the public key to be used to verify the signature
+ * must be passed into the pub parameter. The value of the slot parameter is ignored
+ * in this mode. When the mode is set to S96AT_VERIFY_SIG_INTERNAL, the public key
+ * to be used is stored into the device and it is specified by the slot parameter.
+ * In this mode the pub parameter must be NULL.
+ *
+ * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ */
+uint8_t s96at_verify_sig(struct s96at_desc *desc, enum s96at_verify_sig_mode mode,
+			 struct s96at_ecdsa_sig *sig, uint8_t slot,
+			 struct s96at_ecc_pub *pub);
 
 /* Wake up the device
  *
