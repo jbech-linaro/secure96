@@ -31,6 +31,7 @@ enum {
 
 #define COUNTER_LEN		4
 #define ECC_PUB_LEN		64
+#define ECDSA_SIGNATURE_LEN	64
 #define HMAC_LEN		32
 #define RANDOM_LEN		32
 #define DEVREV_LEN		4
@@ -173,6 +174,9 @@ uint8_t cmd_read(struct s96at_desc *desc, uint8_t zone, uint16_t addr,
 
 uint8_t cmd_sha(struct s96at_desc *desc, uint8_t mode, const uint8_t *in,
 		size_t in_size, uint8_t *out, size_t out_size);
+
+uint8_t cmd_sign(struct s96at_desc *desc, uint8_t mode, uint8_t slotnbr,
+		 uint8_t *out);
 
 uint8_t cmd_update_extra(struct s96at_desc *desc, uint8_t mode, uint8_t value);
 

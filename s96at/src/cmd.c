@@ -141,7 +141,7 @@ static uint8_t atecc508a_get_exec_time(uint8_t opcode)
 		max_time = 9;
 		break;
 	case OPCODE_SIGN:
-		max_time = 50;
+		max_time = 80; /* Incremented from 50 */
 		break;
 	case OPCODE_UPDATEEXTRA:
 		max_time = 10;
@@ -470,6 +470,18 @@ uint8_t cmd_sha(struct s96at_desc *desc, uint8_t mode, const uint8_t *in,
 	p.data_length = in_size;
 
 	return at204_msg(desc->ioif, &p, out, out_size);
+}
+
+uint8_t cmd_sign(struct s96at_desc *desc, uint8_t mode, uint8_t slotnbr,
+		 uint8_t *out)
+{
+	struct cmd_packet p;
+
+	get_command(desc->dev, &p, OPCODE_SIGN);
+	p.param1 = mode;
+	p.param2[0] = slotnbr;
+
+	return at204_msg(desc->ioif, &p, out, ECDSA_SIGNATURE_LEN);
 }
 
 uint8_t cmd_update_extra(struct s96at_desc *desc, uint8_t mode, uint8_t value)

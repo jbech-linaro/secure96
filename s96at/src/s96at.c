@@ -622,6 +622,31 @@ uint8_t s96at_read_otp(struct s96at_desc *desc, uint8_t id, uint8_t *buf)
 	return ret;
 }
 
+uint8_t s96at_sign(struct s96at_desc *desc, enum s96at_sign_mode mode, uint8_t slot,
+		   uint32_t flags, struct s96at_ecdsa_sig *sig)
+{
+	uint8_t ret;
+	uint8_t buf[ECDSA_SIGNATURE_LEN];
+
+	if (!sig)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	if (flags & S96AT_FLAG_USE_SN)
+		mode |= 0x40;
+
+	if (flags & S96AT_FLAG_USE_INVALIDATE)
+		mode |= 0x01;
+
+	ret = cmd_sign(desc, mode, slot, buf);
+	if (ret != STATUS_OK)
+		return ret;
+
+	memcpy(sig->r, buf, S96AT_ECDSA_R_LEN);
+	memcpy(sig->s, buf + S96AT_ECDSA_R_LEN, S96AT_ECDSA_S_LEN);
+
+	return ret;
+}
+
 uint8_t s96at_update_extra(struct s96at_desc *desc, enum s96at_update_extra_mode mode,
 			   uint8_t val)
 {
