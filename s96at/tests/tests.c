@@ -924,6 +924,51 @@ static int test_counter_inc(void)
 	return (val2 == val1 + 1);
 }
 
+static int test_sign_external(void)
+{
+	uint8_t ret;
+	uint8_t slot = 11;
+	struct s96at_ecdsa_sig sig;
+
+	ret = s96at_gen_nonce(&desc, S96AT_NONCE_MODE_PASSTHROUGH, challenge, NULL);
+	CHECK_RES("Nonce", ret, NULL, 0);
+
+	ret = s96at_sign(&desc, S96AT_SIGN_MODE_EXTERNAL, slot,
+			 S96AT_FLAG_NONE, &sig);
+	CHECK_RES("Res", ret, NULL, 0);
+	if (ret == S96AT_STATUS_OK) {
+		hexdump("ECDSA sig->R", sig.r, S96AT_ECDSA_R_LEN);
+		hexdump("ECDSA sig->S", sig.s, S96AT_ECDSA_S_LEN);
+	}
+
+	return ret;
+}
+
+static int test_sign_internal(void)
+{
+	uint8_t ret;
+	uint8_t slot_key = 11;
+	uint8_t slot_data = 0;
+	struct s96at_ecdsa_sig sig;
+
+	ret = s96at_gen_nonce(&desc, S96AT_NONCE_MODE_PASSTHROUGH, challenge, NULL);
+	CHECK_RES("Nonce", ret, NULL, 0);
+
+	ret = s96at_gen_digest(&desc, S96AT_ZONE_DATA, slot_data, NULL);
+	if (ret != S96AT_STATUS_OK)
+		loge("Could not generate digest\n");
+
+	ret = s96at_sign(&desc, S96AT_SIGN_MODE_INTERNAL, slot_key,
+			 S96AT_FLAG_NONE, &sig);
+	CHECK_RES("Res", ret, NULL, 0);
+	if (ret == S96AT_STATUS_OK) {
+		hexdump("ECDSA sig->R", sig.r, S96AT_ECDSA_R_LEN);
+		hexdump("ECDSA sig->S", sig.s, S96AT_ECDSA_S_LEN);
+	}
+
+	return ret;
+}
+
 static int test_reset(void)
 {
 	uint8_t ret;
@@ -991,6 +1036,8 @@ int main(int argc, char *argv[])
 		{"Read: OTP", test_read_otp, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"Reset", test_reset, S96AT_ATSHA204A | S96AT_ATECC508A},
 		{"SHA", test_sha, S96AT_ATSHA204A | S96AT_ATECC508A},
+		{"Sign: External", test_sign_external, S96AT_ATECC508A},
+		{"Sign: Internal", test_sign_internal, S96AT_ATECC508A},
 		{"State", test_state, S96AT_ATECC508A},
 		{0, NULL}
 	};

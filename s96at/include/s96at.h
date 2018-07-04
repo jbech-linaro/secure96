@@ -39,6 +39,8 @@
 #define S96AT_ECC_PRIV_LEN			32 /* without padding */
 #define S96AT_ECC_PUB_X_LEN			32
 #define S96AT_ECC_PUB_Y_LEN			32
+#define S96AT_ECDSA_R_LEN			32
+#define S96AT_ECDSA_S_LEN			32
 #define S96AT_GENDIG_INPUT_LEN			4
 #define S96AT_HMAC_LEN				32
 #define S96AT_KEY_LEN				32
@@ -59,6 +61,7 @@
 #define S96AT_FLAG_USE_OTP_88_BITS		0x08
 #define S96AT_FLAG_USE_SN			0x10
 #define S96AT_FLAG_ENCRYPT			0x12
+#define S96AT_FLAG_USE_INVALIDATE		0x14
 
 #define S96AT_KEY_INVALID			0x00
 #define S96AT_KEY_VALID				0x01
@@ -131,6 +134,11 @@ struct s96at_ecc_pub {
 	uint8_t y[S96AT_ECC_PUB_Y_LEN];
 };
 
+struct s96at_ecdsa_sig {
+	uint8_t r[S96AT_ECDSA_R_LEN];
+	uint8_t s[S96AT_ECDSA_S_LEN];
+};
+
 enum s96at_genkey_mode {
 	S96AT_GENKEY_MODE_PUB,
 	S96AT_GENKEY_MODE_PRIV	  = 0x04,
@@ -153,6 +161,11 @@ enum s96at_nonce_mode {
 enum s96at_random_mode {
 	S96AT_RANDOM_MODE_UPDATE_SEED,
 	S96AT_RANDOM_MODE_UPDATE_NO_SEED
+};
+
+enum s96at_sign_mode {
+	S96AT_SIGN_MODE_INTERNAL,
+	S96AT_SIGN_MODE_EXTERNAL = 0x80
 };
 
 enum s96at_update_extra_mode {
@@ -592,6 +605,32 @@ uint8_t s96at_idle(struct s96at_desc *desc);
  * Returns always S96AT_SUCCESS.
  */
 uint8_t s96at_reset(struct s96at_desc *desc);
+
+/* Generate an ECDSA signature
+ *
+ * This function is only available on ATECC508A.
+ *
+ * Generates an ECDSA signature using the private key specified by the slot
+ * parameter. The resulting signature is stored into buf.
+ *
+ * Mode S96AT_SIGN_MODE_EXTERNAL signs a message that has been hashed outside
+ * the device. The hash must be placed into TempKey using s96at_gen_nonce().
+ * The slot that contains the private key must be configured to allow external
+ * signatures using SlotConfig.ReadKey.
+ *
+ * Mode S96AT_SIGN_MODE_INTERNAL signs data generated within the device, and is
+ * stored in TempKey either through s96at_gen_dig() or s96at_gen_key(). If the
+ * S96AT_FLAG_USE_SN is set, then SN[2:3] and SN[4:7] are included in the hashed
+ * message. The slot that contains the private key must be configured to allow
+ * internal signatures using SlotConfig.ReadKey.
+ *
+ * If the resulting sigature is intended to be used to invalidate a key (ie by
+ * Verify(Invalidate)), then the S96AT_FLAG_USE_INVALIDATE must be set.
+ *
+ * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ */
+uint8_t s96at_sign(struct s96at_desc *desc, enum s96at_sign_mode mode, uint8_t slot,
+		   uint32_t flags, struct s96at_ecdsa_sig *sig);
 
 /* Update extra configuration bytes
  *
