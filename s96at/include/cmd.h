@@ -39,10 +39,13 @@ enum {
 #define MAC_LEN			32
 #define SHA_LEN			32
 #define INFO_LEN		4
+#define KEY_VALIDATE_MSG_LEN	19
 
 #define WORD_SIZE		4
 #define MAX_READ_SIZE		32 /* bytes */
 #define MAX_WRITE_SIZE		32
+
+#define EC_NIST_P256		0x04
 
 #define	COUNTER_MODE_READ	0
 #define	COUNTER_MODE_INCREMENT	1
@@ -179,6 +182,9 @@ uint8_t cmd_sign(struct s96at_desc *desc, uint8_t mode, uint8_t slotnbr,
 		 uint8_t *out);
 
 uint8_t cmd_update_extra(struct s96at_desc *desc, uint8_t mode, uint8_t value);
+
+uint8_t cmd_verify(struct s96at_desc *desc, uint8_t mode, uint8_t slotnbr,
+		   const uint8_t *data, size_t data_size);
 
 uint8_t cmd_write(struct s96at_desc *desc, uint8_t zone, uint16_t addr,
 		  bool encrypted, const uint8_t *data, size_t size);

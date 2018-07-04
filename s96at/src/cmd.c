@@ -484,6 +484,26 @@ uint8_t cmd_sign(struct s96at_desc *desc, uint8_t mode, uint8_t slotnbr,
 	return at204_msg(desc->ioif, &p, out, ECDSA_SIGNATURE_LEN);
 }
 
+uint8_t cmd_verify(struct s96at_desc *desc, uint8_t mode, uint8_t slotnbr,
+		   const uint8_t *data, size_t data_size)
+{
+	uint8_t ret;
+	uint8_t resp;
+	struct cmd_packet p;
+
+	get_command(desc->dev, &p, OPCODE_VERIFY);
+	p.param1 = mode;
+	p.param2[0] = slotnbr;
+	p.data = data;
+	p.data_length = data_size;
+
+	ret = at204_msg(desc->ioif, &p, &resp, 1);
+	if (ret == S96AT_STATUS_OK)
+		ret = resp;
+
+	return ret;
+}
+
 uint8_t cmd_update_extra(struct s96at_desc *desc, uint8_t mode, uint8_t value)
 {
 	uint8_t resp_buf;

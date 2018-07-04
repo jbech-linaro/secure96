@@ -969,6 +969,77 @@ static int test_sign_internal(void)
 	return ret;
 }
 
+static int test_verify_sig_external(void)
+{
+	uint8_t ret;
+	uint8_t slot_priv = 11;
+
+	uint8_t hash_buf[S96AT_SHA_LEN] = {0};
+	struct s96at_ecdsa_sig sig = {0};
+	struct s96at_ecc_pub pub = {0};
+
+	ret = s96at_gen_key(&desc, S96AT_GENKEY_MODE_PUB, slot_priv, &pub);
+	CHECK_RES("Res", ret, NULL, 0);
+	if (ret == S96AT_STATUS_OK) {
+		hexdump("ECC Pub->X", pub.x, S96AT_ECC_PUB_X_LEN);
+		hexdump("ECC Pub->Y", pub.y, S96AT_ECC_PUB_Y_LEN);
+	}
+
+	sha256(challenge, ARRAY_LEN(challenge), hash_buf);
+	hexdump("SHA-256", hash_buf, 32);
+
+	ret = s96at_gen_nonce(&desc, S96AT_NONCE_MODE_PASSTHROUGH, hash_buf, NULL);
+	CHECK_RES("Nonce", ret, NULL, 0);
+
+	ret = s96at_sign(&desc, S96AT_SIGN_MODE_EXTERNAL, slot_priv,
+			 S96AT_FLAG_NONE, &sig);
+	CHECK_RES("Res", ret, NULL, 0);
+	if (ret == S96AT_STATUS_OK) {
+		hexdump("ECDSA->R", sig.r, 32);
+		hexdump("ECDSA->S", sig.s, 32);
+	}
+
+	ret = s96at_gen_nonce(&desc, S96AT_NONCE_MODE_PASSTHROUGH, hash_buf, NULL);
+	CHECK_RES("Nonce", ret, NULL, 0);
+
+	ret = s96at_verify_sig(&desc, S96AT_VERIFY_SIG_MODE_EXTERNAL, &sig, 0, &pub);
+	CHECK_RES("Res", ret, NULL, 0);
+
+	return ret;
+}
+
+static int test_verify_sig_internal(void)
+{
+	uint8_t ret;
+	uint8_t slot_priv = 11;
+	uint8_t slot_pub = 10;
+
+	uint8_t hash_buf[S96AT_SHA_LEN] = {0};
+	struct s96at_ecdsa_sig sig;
+
+	sha256(challenge, ARRAY_LEN(challenge), hash_buf);
+	hexdump("SHA-256", hash_buf, 32);
+
+	ret = s96at_gen_nonce(&desc, S96AT_NONCE_MODE_PASSTHROUGH, hash_buf, NULL);
+	CHECK_RES("Nonce", ret, NULL, 0);
+
+	ret = s96at_sign(&desc, S96AT_SIGN_MODE_EXTERNAL, slot_priv,
+			 S96AT_FLAG_NONE, &sig);
+	CHECK_RES("Res", ret, NULL, 0);
+	if (ret == S96AT_STATUS_OK) {
+		hexdump("ECDSA->R", sig.r, 32);
+		hexdump("ECDSA->S", sig.s, 32);
+	}
+
+	ret = s96at_gen_nonce(&desc, S96AT_NONCE_MODE_PASSTHROUGH, hash_buf, NULL);
+	CHECK_RES("Nonce", ret, NULL, 0);
+
+	ret = s96at_verify_sig(&desc, S96AT_VERIFY_SIG_MODE_STORED, &sig, slot_pub, NULL);
+	CHECK_RES("Res", ret, NULL, 0);
+
+	return ret;
+}
+
 static int test_reset(void)
 {
 	uint8_t ret;
@@ -1039,6 +1110,8 @@ int main(int argc, char *argv[])
 		{"Sign: External", test_sign_external, S96AT_ATECC508A},
 		{"Sign: Internal", test_sign_internal, S96AT_ATECC508A},
 		{"State", test_state, S96AT_ATECC508A},
+		{"Verify Signature: External", test_verify_sig_external, S96AT_ATECC508A},
+		{"Verify Signature: Internal", test_verify_sig_internal, S96AT_ATECC508A},
 		{0, NULL}
 	};
 
