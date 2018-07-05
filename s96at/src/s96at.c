@@ -103,6 +103,52 @@ uint16_t s96at_crc(const uint8_t *buf, size_t buf_len, uint16_t current_crc)
 	return calculate_crc16(buf, buf_len, current_crc);
 }
 
+uint8_t s96at_ecdh(struct s96at_desc *desc, uint8_t slot, struct s96at_ecc_pub *pub,
+		   uint8_t *buf)
+{
+	uint8_t ret;
+	size_t resp_size;
+	uint8_t data[ECC_PUB_LEN] = {0};
+	uint8_t config_buf[2 * S96AT_BLOCK_SIZE];
+	uint8_t resp_buf[S96AT_ECDH_SECRET_LEN];
+	uint8_t transmit_secret;
+
+	if (!pub)
+		return S96AT_STATUS_BAD_PARAMETERS;
+
+	/* Read SlotConfig to determine whether the slot is configured
+	 * to output the ECDH secret. That determines the response length.
+	 * In ATECC508A the Configuration Zone is split into 32-byte blocks,
+	 * and SlotConfig is spread among the first two blocks.
+	 */
+	ret = s96at_read_config(desc, 0, config_buf);
+	if (ret != S96AT_STATUS_OK)
+		return ret;
+	ret = s96at_read_config(desc, 1, config_buf + S96AT_BLOCK_SIZE);
+	if (ret != S96AT_STATUS_OK)
+		return ret;
+	transmit_secret = !(config_buf[SLOT_CONFIG_OFFSET +
+			    slot * SLOT_CONFIG_ENTRY_SIZE] &
+			    ECDH_TRANSMIT_SECRET_MASK);
+
+	if (transmit_secret) {
+		if (!buf)
+			return S96AT_STATUS_BAD_PARAMETERS;
+		resp_size = S96AT_ECDH_SECRET_LEN;
+	} else {
+		resp_size = 1;
+	}
+	memcpy(data, pub->x, S96AT_ECC_PUB_X_LEN);
+	memcpy(data + S96AT_ECC_PUB_X_LEN, pub->y, S96AT_ECC_PUB_Y_LEN);
+
+	ret = cmd_ecdh(desc, slot, data, ECC_PUB_LEN, resp_buf, resp_size);
+
+	if (transmit_secret)
+		memcpy(buf, resp_buf, S96AT_ECDH_SECRET_LEN);
+
+	return ret;
+}
+
 uint8_t s96at_get_random(struct s96at_desc *desc, enum s96at_random_mode mode,
 		     uint8_t *buf)
 {

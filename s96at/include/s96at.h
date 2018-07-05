@@ -39,6 +39,7 @@
 #define S96AT_ECC_PRIV_LEN			32 /* without padding */
 #define S96AT_ECC_PUB_X_LEN			32
 #define S96AT_ECC_PUB_Y_LEN			32
+#define S96AT_ECDH_SECRET_LEN			32
 #define S96AT_ECDSA_R_LEN			32
 #define S96AT_ECDSA_S_LEN			32
 #define S96AT_GENDIG_INPUT_LEN			4
@@ -241,6 +242,21 @@ uint16_t s96at_crc(const uint8_t *buf, size_t buf_len, uint16_t current_crc);
  */
 uint8_t s96at_derive_key(struct s96at_desc *desc, uint8_t slot, uint8_t *mac,
 			 uint32_t flags);
+
+/* Performs ECDH
+ *
+ * This function is only available on ATECC508A.
+ *
+ * Performs ECDH negotiation with the chip to derive a shared secret. The specified
+ * slot must contain an EC private key. If the slot has been configured to output
+ * the secret in the clear, the shared secret is written into buf. The buffer length
+ * must be S96AT_ECDH_SECRET_LEN. If the slot is configured to store the shared secret
+ * into a slot, the buf parameter is ignored.
+ *
+ * Returns S96AT_STATUS_OK on success, otherwise S96AT_STATUS_EXEC_ERROR.
+ */
+uint8_t s96at_ecdh(struct s96at_desc *desc, uint8_t slot, struct s96at_ecc_pub *pub,
+		   uint8_t *buf);
 
 /* Read the value of a monotonic counter
  *
