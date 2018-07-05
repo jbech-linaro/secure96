@@ -1040,6 +1040,26 @@ static int test_verify_sig_internal(void)
 	return ret;
 }
 
+static int test_ecdh(void)
+{
+	uint8_t ret;
+	uint8_t slot = 11;
+	uint8_t secret[S96AT_ECDH_SECRET_LEN];
+	struct s96at_ecc_pub pub;
+
+	ret = s96at_gen_key(&desc, S96AT_GENKEY_MODE_PUB, slot, &pub);
+	CHECK_RES("Res", ret, NULL, 0);
+	if (ret == S96AT_STATUS_OK) {
+		hexdump("ECC Pub->X", pub.x, S96AT_ECC_PUB_X_LEN);
+		hexdump("ECC Pub->Y", pub.y, S96AT_ECC_PUB_Y_LEN);
+	}
+
+	ret = s96at_ecdh(&desc, slot, &pub, secret);
+	CHECK_RES("Res", ret, secret, ARRAY_LEN(secret));
+
+	return ret;
+}
+
 static int test_reset(void)
 {
 	uint8_t ret;
@@ -1112,6 +1132,7 @@ int main(int argc, char *argv[])
 		{"State", test_state, S96AT_ATECC508A},
 		{"Verify Signature: External", test_verify_sig_external, S96AT_ATECC508A},
 		{"Verify Signature: Internal", test_verify_sig_internal, S96AT_ATECC508A},
+		{"ECDH", test_ecdh, S96AT_ATECC508A},
 		{0, NULL}
 	};
 

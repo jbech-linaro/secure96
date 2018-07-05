@@ -128,10 +128,16 @@ uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr);
 #define SLOT_DATA_SIZE         32
 
 #define SLOT_ADDR(slot, block, offset) (block << 8 | slot << 3 | offset)
-#define SLOT_CONFIG_OFFSET(slotnbr) (slotnbr % 2 ? 2 : 0)
-#define SLOT_CONFIG_SIZE 0x2
+#define SLOT_CONFIG_OFFSET	20
+#define SLOT_CONFIG_ENTRY_SIZE	2
 
 #define OTP_ADDR(addr) (4 * addr)
+
+/* ReadKey values for ATECC508A EC Private Keys */
+#define ECDSA_EXTERNAL_SIG_ENABLE	0x01
+#define ECDSA_INTERNAL_SIG_ENABLE	0x02
+#define ECDH_PERMITTED_MASK		0x04
+#define ECDH_TRANSMIT_SECRET_MASK	0x08
 
 uint8_t cmd_check_mac(struct s96at_desc *desc, uint8_t *in, size_t in_size,
 		      uint8_t mode, uint16_t slotnbr, uint8_t *out, size_t out_size);
@@ -143,6 +149,9 @@ uint8_t cmd_derive_key(struct s96at_desc *desc, uint8_t random, uint8_t slotnbr,
 		       uint8_t *buf, size_t size);
 
 uint8_t cmd_devrev(struct s96at_desc *desc, uint8_t *buf, size_t size);
+
+uint8_t cmd_ecdh(struct s96at_desc *desc, uint8_t slot, const uint8_t *in,
+		 size_t in_size, uint8_t *out, size_t out_size);
 
 uint8_t cmd_gen_dig(struct s96at_desc *desc, const uint8_t *in, size_t in_size,
 		    uint8_t zone, uint16_t slotnbr);

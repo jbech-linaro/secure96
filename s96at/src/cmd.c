@@ -232,6 +232,19 @@ uint8_t cmd_devrev(struct s96at_desc *desc, uint8_t *buf, size_t size)
 	return at204_msg(desc->ioif, &p, buf, size);
 }
 
+uint8_t cmd_ecdh(struct s96at_desc *desc, uint8_t slotnbr, const uint8_t *in,
+		 size_t in_size, uint8_t *out, size_t out_size)
+{
+	struct cmd_packet p;
+
+	get_command(desc->dev, &p, OPCODE_ECDH);
+	p.param2[0] = slotnbr;
+	p.data = in;
+	p.data_length = in_size;
+
+	return at204_msg(desc->ioif, &p, out, out_size);
+}
+
 uint8_t cmd_gen_dig(struct s96at_desc *desc, const uint8_t *in, size_t in_size,
 		    uint8_t zone, uint16_t slotnbr)
 {
