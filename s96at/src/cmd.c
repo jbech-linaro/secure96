@@ -532,6 +532,7 @@ uint8_t cmd_update_extra(struct s96at_desc *desc, uint8_t mode, uint8_t value)
 uint8_t cmd_write(struct s96at_desc *desc, uint8_t zone, uint16_t addr,
 		  bool encrypted, const uint8_t *data, size_t size)
 {
+	uint8_t ret;
 	uint8_t resp;
 	struct cmd_packet p;
 
@@ -551,5 +552,9 @@ uint8_t cmd_write(struct s96at_desc *desc, uint8_t zone, uint16_t addr,
 	p.data = data;
 	p.data_length = size;
 
-	return at204_msg(desc->ioif, &p, &resp, 1);
+	ret = at204_msg(desc->ioif, &p, &resp, 1);
+	if (ret == S96AT_STATUS_OK)
+		ret = resp;
+
+	return ret;
 }
