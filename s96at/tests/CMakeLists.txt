@@ -9,6 +9,6 @@ add_executable(${PROJECT_NAME} EXCLUDE_FROM_ALL ${SRC} tests.c)
 
 target_compile_definitions(${PROJECT_NAME}
 	PRIVATE -DI2C_DEVICE="${I2C_DEVICE}"
-	PRIVATE -DDEBUG
+#	PRIVATE -DDEBUG
 )
 target_link_libraries(${PROJECT_NAME} ${OPENSSL_LIBRARIES})
