@@ -115,7 +115,7 @@ enum s96at_zone {
 	S96AT_ZONE_DATA
 };
 
-/* See Table 9.6 in atecc508a spec */
+/* See Table 9.6 in ATECC508A spec */
 struct s96at_slot_addr {
 	uint8_t slot;
 	uint8_t block;
@@ -497,7 +497,7 @@ uint8_t s96at_get_serialnbr(struct s96at_desc *desc, uint8_t *serial);
 uint8_t s96at_get_sha(struct s96at_desc *desc, uint8_t *buf,
 		      size_t buf_len, size_t msg_len, uint8_t *hash);
 
-/* Get dynamic state info (atecc508a only)
+/* Get dynamic state info (ATECC508A only)
  *
  * Populates buf with dynamic state information. The buffer length is S96AT_STATE_LEN,
  * ie 2 Bytes. The first byte contains the following information:
@@ -553,11 +553,11 @@ uint8_t s96at_lock_zone(struct s96at_desc *desc, enum s96at_zone zone, uint16_t 
 
 /* Read from the Configuration zone
  *
- * In atecc508a the Configuration zone is organized into 32-byte blocks. The id
+ * In ATECC508A the Configuration zone is organized into 32-byte blocks. The id
  * parameter specifies the block to be read, in the range of 0-3. The block's
  * contents are written into buf, which must have the appropriate size.
  *
- * In atsha204a the Config zone is organized into 4-byte words. The id parameter
+ * In ATSHA204A the Config zone is organized into 4-byte words. The id parameter
  * specifies the word to be read, in the range of 0-21. The buffer size must be
  * set accordingly.
  *
@@ -573,15 +573,15 @@ uint8_t s96at_read_config(struct s96at_desc *desc, uint8_t id, uint8_t *buf);
  * and only if that slot has been configured as such, ie the isSecret bit is
  * zero.
  *
- * In atsha204a, the Data zone is organized in 32-byte slots. The slot to be read
+ * In ATSHA204A, the Data zone is organized in 32-byte slots. The slot to be read
  * is defined by the slot element of the addr parameter, in the range of 0-15. The
  * remaining elements of the addr structure must be zero. The default write length
  * is 32 bytes.
  *
- * In atecc508a, the Data zone slots are of various lengths. Reads are still performed
+ * In ATECC508A, the Data zone slots are of various lengths. Reads are still performed
  * in multiples of 32-byte blocks. The part of the slot to be read is defined by
  * the slot and block elements of the addr parameter. Valid ranges depend on the slot.
- * See Table 9.7 in the atecc508a specification.
+ * See Table 9.7 in the ATECC508A specification.
  *
  * Reads from the Data zone can be encrypted if the EncryptedRead bit is set in the
  * slot's configuration. To perform an encrypted read, GenDig must be run before
@@ -734,15 +734,15 @@ uint8_t s96at_write_config(struct s96at_desc *desc, uint8_t id, const uint8_t *b
  * and before the Data zone has been locked. Once the Data zone has been locked, writing
  * to a slot depends on the permissions set on the slot's configuration.
  *
- * In atsha204a, the Data zone is organized in 32-byte slots. The slot to be written
+ * In ATSHA204A, the Data zone is organized in 32-byte slots. The slot to be written
  * is defined by the slot element of the addr parameter, in the range of 0-15. The
  * remaining elements of the addr structure must be zero. The default write length
  * is 32 bytes.
  *
- * In atecc508a, the Data zone slots are of various lengths. Writes are still performed
+ * In ATECC508A, the Data zone slots are of various lengths. Writes are still performed
  * in multiples of 32-byte blocks. The part of the slot to be written is defined by
  * the slot and block elements of the addr parameter. Valid ranges depend on the slot.
- * See Table 9.7 in the atecc508a specification.
+ * See Table 9.7 in the ATECC508A specification.
  *
  * 4-byte writes allow updating part of a slot. When performing a 4-byte write, the
  * offset element of the addr parameter specifies the required word within the selected
