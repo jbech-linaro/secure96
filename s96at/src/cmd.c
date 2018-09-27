@@ -27,8 +27,8 @@ uint8_t SLOT_CONFIG_ADDR(uint8_t slotnbr)
 	return addr + slotnbr;
 }
 
-/* atsha204a max execution times in ms
- * See Table 8.4 in the atsha204a spec
+/* ATSHA204A max execution times in ms
+ * See Table 8.4 in the ATSHA204A spec
  */
 static uint8_t atsha204a_get_exec_time(uint8_t opcode)
 {
@@ -84,8 +84,8 @@ static uint8_t atsha204a_get_exec_time(uint8_t opcode)
 	return max_time;
 }
 
-/* atecc508a max execution times in ms
- * See Table 9.4 in the atecc508a spec
+/* ATECC508A max execution times in ms
+ * See Table 9.4 in the ATECC508A spec
  */
 static uint8_t atecc508a_get_exec_time(uint8_t opcode)
 {

@@ -144,7 +144,7 @@ static int test_gendig(void)
 
 	uint8_t digest_e[SHA_LEN] = { 0 };
 
-	uint8_t buf_a[MAC_LEN] = { 0 }; /* actual (atsha204a) */
+	uint8_t buf_a[MAC_LEN] = { 0 }; /* actual (ATSHA204A) */
 	uint8_t buf_e[MAC_LEN] = { 0 }; /* expected (openssl) */
 
 	ret = s96at_gen_nonce(&desc, S96AT_NONCE_MODE_PASSTHROUGH, challenge, NULL);
@@ -227,7 +227,7 @@ static int test_hmac(void)
 	unsigned int hmac_len;
 	uint8_t slot = 0;
 
-	uint8_t buf_a[S96AT_HMAC_LEN] = { 0 }; /* actual (atsha204a) */
+	uint8_t buf_a[S96AT_HMAC_LEN] = { 0 }; /* actual (ATSHA204A) */
 	uint8_t buf_e[S96AT_HMAC_LEN] = { 0 }; /* expected (openssl) */
 
 	uint8_t msg[] = {
@@ -283,7 +283,7 @@ static int test_mac_mode0(void)
 {
 	uint8_t ret = S96AT_STATUS_EXEC_ERROR;
 
-	uint8_t buf_a[S96AT_MAC_LEN] = { 0 }; /* actual (atsha204a) */
+	uint8_t buf_a[S96AT_MAC_LEN] = { 0 }; /* actual (ATSHA204A) */
 	uint8_t buf_e[S96AT_MAC_LEN] = { 0 }; /* expected (openssl) */
 
 	uint8_t slot = 0;
@@ -334,7 +334,7 @@ static int test_mac_mode1(void)
 {
 	uint8_t ret = S96AT_STATUS_EXEC_ERROR;
 
-	uint8_t buf_a[S96AT_MAC_LEN] = { 0 }; /* actual (atsha204a) */
+	uint8_t buf_a[S96AT_MAC_LEN] = { 0 }; /* actual (ATSHA204A) */
 	uint8_t buf_e[S96AT_MAC_LEN] = { 0 }; /* expected (openssl) */
 
 	uint8_t slot = 0;
@@ -384,7 +384,7 @@ static int test_mac_mode2(void)
 {
 	uint8_t ret = S96AT_STATUS_EXEC_ERROR;
 
-	uint8_t buf_a[S96AT_MAC_LEN] = { 0 }; /* actual (atsha204a) */
+	uint8_t buf_a[S96AT_MAC_LEN] = { 0 }; /* actual (ATSHA204A) */
 	uint8_t buf_e[S96AT_MAC_LEN] = { 0 }; /* expected (openssl) */
 
 	uint8_t slot = 0;
@@ -432,7 +432,7 @@ static int test_mac_mode3(void)
 {
 	uint8_t ret = S96AT_STATUS_EXEC_ERROR;
 
-	uint8_t buf_a[S96AT_MAC_LEN] = { 0 }; /* actual (atsha204a) */
+	uint8_t buf_a[S96AT_MAC_LEN] = { 0 }; /* actual (ATSHA204A) */
 	uint8_t buf_e[S96AT_MAC_LEN] = { 0 }; /* expected (openssl) */
 
 	uint8_t slot = 0;
@@ -604,7 +604,7 @@ static int test_sha(void)
 {
 	uint8_t ret;
 
-	uint8_t buf_a[S96AT_SHA_LEN] = { 0 }; /* actual (atsha204a) */
+	uint8_t buf_a[S96AT_SHA_LEN] = { 0 }; /* actual (ATSHA204A) */
 	uint8_t buf_e[S96AT_SHA_LEN] = { 0 }; /* expected (openssl) */
 
 	uint8_t sha_in[256] = {
@@ -653,7 +653,7 @@ static int test_derivekey(void)
 
 	uint8_t slot = 3;
 
-	uint8_t mac_a[S96AT_MAC_LEN] = { 0 }; /* actual (atsha204a) */
+	uint8_t mac_a[S96AT_MAC_LEN] = { 0 }; /* actual (ATSHA204A) */
 	uint8_t mac_e[S96AT_MAC_LEN] = { 0 }; /* expected (openssl) */
 
 	uint8_t sha_in[] = {
@@ -1140,8 +1140,8 @@ int main(int argc, char *argv[])
 		printf("Usage: %s <device>\n", argv[0]);
 		printf("\n");
 		printf("Available devices:\n");
-		printf("atecc    atecc508a\n");
-		printf("atsha    atsha204a\n");
+		printf("atecc    ATECC508A\n");
+		printf("atsha    ATSHA204A\n");
 		printf("\n");
 		return -1;
 	}
